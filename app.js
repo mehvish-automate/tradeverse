@@ -562,6 +562,7 @@ const TVPersistence = (function initPersistence() {
   };
 
   const saveNow = () => {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     const edits = collect();
     const count = Object.keys(edits).length;
     if (count === 0) {
@@ -622,6 +623,57 @@ const TVPersistence = (function initPersistence() {
     },
     onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
   };
+})();
+
+/* -------------------------------------------------------------------------- */
+/* Unload guard: flush + warn if data is at risk (Phase 5.4)                  */
+/* -------------------------------------------------------------------------- */
+(function initUnloadGuard() {
+  if (!TVPersistence) return;
+
+  let armed = true;
+
+  // Reset (Phase 5.3) calls this so the explicit user-initiated reload isn't
+  // double-prompted. Re-arms on the next tick in case Reset bails out.
+  window.__tvSkipUnloadGuard = () => {
+    armed = false;
+    setTimeout(() => { armed = true; }, 1500);
+  };
+
+  const flushAndCheck = () => {
+    // Try to flush any pending debounced save synchronously. localStorage
+    // writes are sync, so this is genuinely 'last chance' protection.
+    try { TVPersistence.saveNow(); } catch { /* fall through */ }
+    return TVPersistence.isDirty();
+  };
+
+  // Modern beforeunload: assigning returnValue (or returning a string)
+  // triggers the browser's native confirmation dialog. The custom string
+  // is ignored by Chrome/Firefox — they show their own message — but we
+  // still set one for older browsers and accessibility tooling.
+  window.addEventListener('beforeunload', (e) => {
+    if (!armed) return undefined;
+    if (!flushAndCheck()) return undefined;
+    const msg = 'You have unsaved changes that could not be auto-saved (storage may be full or blocked). Leave anyway?';
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  });
+
+  // Belt-and-braces flush on page hide too (covers iOS Safari which may
+  // skip beforeunload on tab close / app switch).
+  window.addEventListener('pagehide', () => {
+    if (!armed) return;
+    try { TVPersistence.saveNow(); } catch { /* noop */ }
+  });
+
+  // Also flush when the tab loses visibility — by the time the user
+  // returns, their edits are guaranteed to be persisted.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      try { TVPersistence.saveNow(); } catch { /* noop */ }
+    }
+  });
 })();
 
 /* -------------------------------------------------------------------------- */
