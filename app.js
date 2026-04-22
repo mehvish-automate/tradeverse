@@ -1230,6 +1230,34 @@ const TVExport = (function initExport() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Print / Save as PDF (Phase 6.3)                                            */
+/* -------------------------------------------------------------------------- */
+(function initPrintExport() {
+  if (!TVExport) return;
+
+  const printNow = () => {
+    // Flush any pending edits so what prints matches what's on screen.
+    if (typeof TVPersistence !== 'undefined' && TVPersistence) {
+      try { TVPersistence.saveNow(); } catch { /* noop */ }
+    }
+
+    // If the user is mid-edit, blur the active editable so the caret/focus
+    // ring doesn't flash into the print preview.
+    if (document.activeElement && document.activeElement.blur) {
+      try { document.activeElement.blur(); } catch { /* noop */ }
+    }
+
+    window.print();
+  };
+
+  TVExport.register('print', printNow);
+
+  // Keyboard shortcut Cmd/Ctrl+P is already wired by the browser to
+  // window.print(); our @media print stylesheet picks it up automatically.
+  // No extra binding needed here.
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Unload guard: flush + warn if data is at risk (Phase 5.4)                  */
 /* -------------------------------------------------------------------------- */
 (function initUnloadGuard() {

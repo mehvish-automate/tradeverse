@@ -1241,33 +1241,258 @@ body[data-edit-mode="true"] .content::before {
 
 .doc-meta { max-width: 560px; }
 
-/* ---------- Print reset ---------------------------------------------------- */
+/* ---------- Print reset (hardened in Phase 6.3) --------------------------- */
 @media print {
+  /* Token overrides so cascade-based colors flatten correctly. */
   :root {
-    --tv-bg: #ffffff;
-    --tv-surface: #ffffff;
+    --tv-bg:           #ffffff;
+    --tv-surface:      #ffffff;
+    --tv-surface-alt:  #f4f4f4;
+    --tv-border:       #cccccc;
+    --tv-border-strong:#999999;
+    --tv-text:         #000000;
+    --tv-text-muted:   #444444;
+    --tv-text-faint:   #777777;
+    --tv-brand:        #1a1a1a;
+    --tv-brand-strong: #000000;
   }
+
+  /* Hint browsers to print backgrounds — users can still override via the
+     "Background graphics" checkbox, but the default look matches the screen. */
   html, body {
     background: #fff !important;
     color: #000 !important;
-    font-size: 11pt;
-    line-height: 1.4;
+    font-size: 10.5pt;
+    line-height: 1.42;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  /* Layout chrome hidden in print — content only */
+
+  /* ---- Hide every piece of dynamic / interactive chrome ---- */
   .toolbar,
   .nav-rail,
-  .skip-link { display: none !important; }
+  .nav-scrim,
+  .skip-link,
+  .reading-progress,
+  .back-to-top,
+  .lock-warning,
+  .anchor-link,
+  .toc-search,
+  [data-export-menu-list],
+  [data-edit-mode-pill],
+  [data-save-status],
+  [data-reset-button],
+  [data-headings-toggle],
+  [data-back-to-top] {
+    display: none !important;
+  }
+
+  /* Reset the editing affordances (left bar, blue tint) so they never
+     bleed into print even if the user printed mid-edit. */
+  body[data-edit-mode="true"] .content::before,
+  body[data-edit-mode="true"] .is-editable {
+    background: transparent !important;
+    box-shadow: none !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    cursor: default !important;
+  }
+  body[data-edit-mode="true"] .content::before { display: none !important; }
+  body[data-edit-mode="true"] .is-editable[data-empty="true"]::before { content: "" !important; }
+
+  /* ---- Layout: full-bleed single column ---- */
   .layout { display: block !important; }
   .content {
     max-width: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    background: #fff !important;
   }
-  a { color: #000; text-decoration: underline; }
-  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #555; }
-  h1, h2, h3, h4 { page-break-after: avoid; break-after: avoid; }
-  table, figure, pre, blockquote { page-break-inside: avoid; break-inside: avoid; }
+
+  /* ---- Links: keep blue out, append the URL inline ---- */
+  a { color: #000 !important; text-decoration: underline; }
+  a[href^="http"]::after,
+  a[href^="https"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8.5pt;
+    color: #555;
+    word-break: break-all;
+  }
+  /* Internal anchor links don't need URLs printed. */
+  a[href^="#"]::after { content: ""; }
+
+  /* ---- Headings: keep with following content, restore section dividers ---- */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #000 !important;
+  }
+  h2 {
+    page-break-before: auto;
+    break-before: auto;
+    border-top: 1.5pt solid #000 !important;
+    padding-top: 6pt !important;
+    margin-top: 18pt !important;
+  }
+  /* The first H2 in the document doesn't need its own divider. */
+  .content > section:first-of-type > h2,
+  .content > header + section > h2 {
+    border-top: 0 !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  h3 { page-break-before: avoid; break-before: avoid; }
+
+  /* Keep paragraphs and lists from being split into orphan/widow lines. */
+  p, li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* ---- Tables ---- */
+  table, figure, pre, blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Long tables: allow break, but repeat the header on each page. */
   thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
   tr, img { page-break-inside: avoid; break-inside: avoid; }
-  @page { margin: 18mm 16mm; }
+  .table-wrap {
+    box-shadow: none !important;
+    overflow: visible !important;
+    border: 0.5pt solid #999 !important;
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+  table thead th {
+    background: #f0f0f0 !important;
+    border-bottom: 1pt solid #000 !important;
+    color: #000 !important;
+  }
+  table tbody td,
+  table tbody th {
+    border-bottom: 0.5pt solid #ccc !important;
+    background: transparent !important;
+  }
+  table tbody tr:nth-child(even) td,
+  table tbody tr:nth-child(even) th {
+    background: #fafafa !important;
+  }
+  /* The hover-row brand tint makes no sense in print. */
+  table tbody tr:hover td,
+  table tbody tr:hover th { background: transparent !important; }
+
+  /* ---- Callouts: visible without colored fills, conveyed by border + label ---- */
+  .callout {
+    background: transparent !important;
+    border: 0.5pt solid #999 !important;
+    border-left: 2pt solid #000 !important;
+    padding: 8pt 10pt !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .callout::before {
+    content: "ⓘ NOTE";
+    display: block;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 4pt;
+    color: #000;
+  }
+  .callout--warn::before    { content: "⚠ WARNING"; }
+  .callout--danger::before  { content: "⚠ CAUTION"; }
+  .callout--success::before { content: "✓ TIP"; }
+  .callout--neutral::before { content: "ⓘ NOTE"; }
+  .callout__icon { display: none !important; }
+  .callout__title {
+    font-weight: 700 !important;
+    color: #000 !important;
+    margin-bottom: 4pt !important;
+  }
+
+  /* ---- Status badges + chips: text-with-border, not colored pills ---- */
+  .badge,
+  .chip {
+    background: transparent !important;
+    color: #000 !important;
+    border: 0.5pt solid #777 !important;
+    padding: 0 0.4em !important;
+    font-weight: 600 !important;
+  }
+  .badge::before { display: none !important; }
+
+  /* ---- Code + pre: keep monospace but lose the dark theme ---- */
+  pre {
+    background: #f4f4f4 !important;
+    color: #000 !important;
+    border: 0.5pt solid #ccc !important;
+    padding: 8pt !important;
+    font-size: 9pt !important;
+    line-height: 1.4;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  code {
+    background: #f4f4f4 !important;
+    border: 0.5pt solid #ddd !important;
+    color: #000 !important;
+  }
+  pre code { background: transparent !important; border: 0 !important; }
+  kbd {
+    background: #fff !important;
+    border: 0.5pt solid #999 !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+
+  /* ---- Compliance checklist: visible boxes ---- */
+  .content .checklist { padding-left: 0; }
+  .content .checklist > li {
+    border-bottom: 0.25pt dotted #aaa !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .content .checklist input[type="checkbox"] {
+    appearance: none;
+    width: 10pt;
+    height: 10pt;
+    border: 0.5pt solid #000 !important;
+    background: #fff !important;
+    margin-right: 6pt;
+    vertical-align: middle;
+  }
+  .content .checklist input[type="checkbox"]:checked {
+    background: #000 !important;
+  }
+
+  /* ---- Document header ---- */
+  .doc-header { margin-bottom: 12pt !important; }
+  .doc-eyebrow { color: #444 !important; }
+  .doc-tagline { color: #333 !important; max-width: none !important; }
+  .doc-status li .badge { display: inline-block; }
+
+  /* ---- Page boxes ---- */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 22mm 16mm;
+    @bottom-right {
+      content: "TradeVerse PRD · Page " counter(page) " of " counter(pages);
+      font-family: "Inter", sans-serif;
+      font-size: 8pt;
+      color: #666;
+    }
+    @bottom-left {
+      content: "v1.0 · " "April 2026";
+      font-family: "Inter", sans-serif;
+      font-size: 8pt;
+      color: #666;
+    }
+  }
+  /* Suppress page number on the cover page so the title gets the spotlight. */
+  @page :first {
+    @bottom-right { content: ""; }
+    @bottom-left { content: ""; }
+  }
 }
