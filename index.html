@@ -501,6 +501,269 @@
         </div>
       </section>
 
+      <!-- =========================================================
+           10. Feature Specifications (P1–P9)
+           ========================================================= -->
+      <section id="sec-10-feature-specs" aria-labelledby="h-10">
+        <h2 id="h-10">10. Feature Specifications</h2>
+
+        <!-- P1 -->
+        <h3 id="h-10-p1">P1 — Practice &amp; Learn</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Functional Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P1.1</span></th><td>Prediction Challenge</td><td>Chart up to time T → predict direction/breakout for T+1; resolve via historical data.</td></tr>
+              <tr><th scope="row"><span class="chip">P1.2</span></th><td>Chart Analysis</td><td>Annotate / identify patterns on anonymized real charts.</td></tr>
+              <tr><th scope="row"><span class="chip">P1.3</span></th><td>Support &amp; Resistance</td><td>Tap correct level; tolerance band scored.</td></tr>
+              <tr><th scope="row"><span class="chip">P1.4</span></th><td>Pattern Recognition</td><td>4-option MCQ: <em>"Which chart shows X?"</em></td></tr>
+              <tr><th scope="row"><span class="chip">P1.5</span></th><td>Fundamentals Decode</td><td>Match P&amp;L / BS snapshots to companies.</td></tr>
+              <tr><th scope="row"><span class="chip">P1.6</span></th><td>Session Stats</td><td>After every session: Total Time, Avg Time/Q, Accuracy %.</td></tr>
+              <tr><th scope="row"><span class="chip">P1.7</span></th><td>Stats Filters</td><td>1D / 1W / 1M / 6M / All with progress chart.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <strong>NFRs:</strong> Visual-first (≤12 words text), 100% system-generated content,
+          p95 question-load &lt; 400ms, offline batch support.
+        </p>
+
+        <!-- P2 -->
+        <h3 id="h-10-p2">P2 — Compete</h3>
+
+        <h4 id="h-10-p2-1">P2.1 Room Types</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Host</th>
+                <th scope="col">Participants</th>
+                <th scope="col">Approval</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Private Room</strong></td><td>Any user</td><td>≤15, invite-only</td><td>None</td></tr>
+              <tr><td><strong>Public Room</strong></td><td>Any user</td><td>≤15</td><td>None</td></tr>
+              <tr><td><strong>Ambassador Room</strong></td><td>Ambassador</td><td>16–100</td><td>Auto</td></tr>
+              <tr><td><strong>Club / Institute Room</strong></td><td>Club / Institute</td><td>16–500+</td><td>None for members</td></tr>
+              <tr><td><strong>Prezone</strong></td><td>Club / Institute only</td><td>≥15</td><td>Admin approval required</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 id="h-10-p2-2">P2.2 Event Types <span class="badge badge--neutral">any room can host</span></h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th scope="col">Type</th><th scope="col">Scoring</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Quiz</td><td>Accuracy + speed</td></tr>
+              <tr><td>Prediction</td><td>Accuracy vs actual</td></tr>
+              <tr><td>Breakout Challenge</td><td>% hit rate</td></tr>
+              <tr><td>Paper Trading Event</td><td>Return %</td></tr>
+              <tr><td>Case Study / Hackathon</td><td>Peer + system scoring</td></tr>
+              <tr><td>Shock Market <span class="badge badge--neutral">news, 30s</span></td><td>Accuracy vs consensus + expert</td></tr>
+              <tr><td>Crossword</td><td>Completion time + accuracy</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4 id="h-10-p2-3">P2.3 Room Creation — required parameters</h4>
+        <ul>
+          <li>Start date &amp; time</li>
+          <li>End date &amp; time</li>
+          <li>Event type</li>
+          <li><strong>Quiz-specific:</strong> # questions, time/question</li>
+          <li><strong>Question source:</strong> system-generated (default) OR custom (Ambassador+, with audit)</li>
+          <li><strong>Visibility:</strong> Private / Public / Club-internal</li>
+          <li><strong>Virtual Capital</strong> (trading/portfolio events): ₹1L or ₹50L</li>
+          <li><strong>Asset universe:</strong> Stocks / ETFs / Indices; industry filter; Nifty-50 or custom basket (max 40 stocks)</li>
+        </ul>
+
+        <h4 id="h-10-p2-4">P2.4 Lobby</h4>
+        <p>
+          Pre-event lobby for non-Prezone events (participants, moderated chat, ready-check).
+          Prezones join at scheduled start.
+        </p>
+
+        <p class="text-small">
+          <strong>NFRs:</strong> MVP supports 50 concurrent/room; V2 500. Server-side clock,
+          client drift ≤500ms.
+        </p>
+
+        <!-- P3 -->
+        <h3 id="h-10-p3">P3 — Portfolios</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P3.1</span></th><td>Strategy Portfolio (×2 slots)</td><td>Persistent; ₹1L or ₹50L; stocks + ETFs + indices.</td></tr>
+              <tr><th scope="row"><span class="chip">P3.2</span></th><td>Event Portfolio (×2 active slots)</td><td>Auto-created on joining a Paper Trading Event; archived at event end.</td></tr>
+              <tr><th scope="row"><span class="chip">P3.3</span></th><td>Portfolio Journal</td><td>Trade-by-trade timeline; reason tag (Earnings / Technical / Tip / Gut); quarterly Report Card.</td></tr>
+              <tr><th scope="row"><span class="chip">P3.4</span></th><td>Portfolio Stats Filters</td><td>1D / 1W / 1M / 6M / All</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- P4 -->
+        <h3 id="h-10-p4">P4 — Social Trading Floor</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P4.1</span></th><td>Voice Rooms</td><td>Clubhouse-style, attached to a Room; 8–50 speakers/listeners; host mute/kick.</td></tr>
+              <tr><th scope="row"><span class="chip">P4.2</span></th><td>Screen Share</td><td>Host shares chart/portfolio; read-only on viewer; 5 fps ok.</td></tr>
+              <tr><th scope="row"><span class="chip">P4.3</span></th><td>Pop-out Replica</td><td>Viewer pops out host's shared screen + one-tap replicates the trade into own virtual portfolio (<strong>killer feature</strong>).</td></tr>
+              <tr><th scope="row"><span class="chip">P4.4</span></th><td>Live Leaderboard</td><td>≤2s latency overlay during events.</td></tr>
+              <tr><th scope="row"><span class="chip">P4.5</span></th><td>Live Streaming</td><td>1-to-many audio/video/screen; monetization gate: eligible for revenue share after 2 streams.</td></tr>
+              <tr><th scope="row"><span class="chip">P4.6</span></th><td>Resources Library</td><td>Post-moderation-approved voice/video recordings move to hosting entity's Resources tab; indefinite retention for approved; searchable transcripts.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--warn">
+          <span class="callout__icon" aria-hidden="true">!</span>
+          <div>
+            <p class="callout__title">Guardrails</p>
+            <ul>
+              <li>Mandatory on-stream disclaimer: <em>"Educational content only. Not investment advice."</em></li>
+              <li>No live buy/sell recommendations unless streamer is SEBI-RIA (V3+).</li>
+              <li>3-strike moderation policy.</li>
+              <li>Voice rooms recorded 30 days raw for moderation; approved content flows to Resources Library.</li>
+              <li>Moderation turnaround internal-only, not user-promised.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- P5 -->
+        <h3 id="h-10-p5">P5 — Quests &amp; Streaks</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P5.1</span></th><td>Quest System</td><td>Three cadences: Daily / Weekly / Monthly.</td></tr>
+              <tr><th scope="row"><span class="chip">P5.2</span></th><td>Quest library</td><td><em>"Complete today's breakout prediction", "Play 2 quizzes", "Win a paper trading event".</em></td></tr>
+              <tr><th scope="row"><span class="chip">P5.3</span></th><td>One-tap redirect</td><td>Every quest deep-links to target surface, no intermediate screens.</td></tr>
+              <tr><th scope="row"><span class="chip">P5.4</span></th><td>Streaks</td><td>Consecutive days with ≥1 activity in 9:00–9:30 AM IST market-open window; streak-freeze IAP ₹29, max 2/month.</td></tr>
+              <tr><th scope="row"><span class="chip">P5.5</span></th><td>In-App Widgets</td><td>iOS WidgetKit + Android App Widgets; 4×/day refresh.</td></tr>
+              <tr><th scope="row"><span class="chip">P5.6</span></th><td>Push Nudges</td><td>Max 3/day default; none during market hours unless opted in.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- P6 -->
+        <h3 id="h-10-p6">P6 — Events Marketplace</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P6.1</span></th><td>Tabs</td><td>Internal / External (partner events).</td></tr>
+              <tr><th scope="row"><span class="chip">P6.2</span></th><td>Filters</td><td>Type, Virtual Capital, Asset Class, Start Time, Host Type, Entry.</td></tr>
+              <tr><th scope="row"><span class="chip">P6.3</span></th><td>Event Cards</td><td>Host, type, start time, # joined, XP prize, difficulty.</td></tr>
+              <tr><th scope="row"><span class="chip">P6.4</span></th><td>Featured Row</td><td>MVP: editorially curated. V2: algorithmic.</td></tr>
+              <tr><th scope="row"><span class="chip">P6.5</span></th><td>Fest View</td><td>Club/Institute-curated bundle of events with own landing page + cross-event leaderboard.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- P7 -->
+        <h3 id="h-10-p7">P7 — Leaderboards &amp; Profile</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P7.1</span></th><td>Scopes</td><td>Friends / Institute (V2) / Global.</td></tr>
+              <tr><th scope="row"><span class="chip">P7.2</span></th><td>Metrics</td><td>Per-event: accuracy + speed. Week/month: XP. Portfolio: return %.</td></tr>
+              <tr><th scope="row"><span class="chip">P7.3</span></th><td>Profile Stats</td><td>XP, streak, accuracy %, win rate, avg response time, returns — all with 1D/1W/1M/6M/All filters.</td></tr>
+              <tr><th scope="row"><span class="chip">P7.4</span></th><td>Progress Chart</td><td>Line chart (accuracy or XP over time).</td></tr>
+              <tr><th scope="row"><span class="chip">P7.5</span></th><td>Badges &amp; Trophies</td><td>From events, streaks, quests.</td></tr>
+              <tr><th scope="row"><span class="chip">P7.6</span></th><td>Activity History</td><td>Chronological log.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- P8 -->
+        <h3 id="h-10-p8">P8 — Clubs, Institutes &amp; Ambassadors</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P8.1</span></th><td>Account Types</td><td>Individual (≤15) / Ambassador (≤100) / Club (any, fests) / Institute (any, fests, Prezones).</td></tr>
+              <tr><th scope="row"><span class="chip">P8.2</span></th><td>Ambassador Program</td><td>Criteria in §11.</td></tr>
+              <tr><th scope="row"><span class="chip">P8.3</span></th><td>Club Creation</td><td>≥5 member applications + admin approval; landing page, roster, calendar.</td></tr>
+              <tr><th scope="row"><span class="chip">P8.4</span></th><td>Institute / Org Verification</td><td>Email domain + admin call.</td></tr>
+              <tr><th scope="row"><span class="chip">P8.5</span></th><td>Fest Builder</td><td>Named bundle of events with dates + cross-event leaderboard.</td></tr>
+              <tr><th scope="row"><span class="chip">P8.6</span></th><td>Prezone Workflow</td><td>Institute drafts → admin reviews (content, dates, ≥15 participants) → approved → featured.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- P9 -->
+        <h3 id="h-10-p9">P9 — Growth Loop</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 5rem">ID</th>
+                <th scope="col">Feature</th>
+                <th scope="col">Requirements</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip">P9.1</span></th><td>Refer a Friend</td><td>Unique link; dual-sided 500 XP + 7-day streak freeze on invitee's 5th challenge.</td></tr>
+              <tr><th scope="row"><span class="chip">P9.2</span></th><td>Share Challenge</td><td>One-tap share from any challenge screen → WhatsApp / IG / Twitter → inviter XP on completion.</td></tr>
+              <tr><th scope="row"><span class="chip">P9.3</span></th><td>Shareable Leaderboard Cards</td><td>Auto-generated OG card per event result, one-tap share.</td></tr>
+              <tr><th scope="row"><span class="chip">P9.4</span></th><td>Creator Program <span class="badge badge--v3">V3</span></td><td>Community educators publish challenges/quizzes; XP economy + sponsored challenge revenue share. <strong>No personalized advice.</strong></td></tr>
+              <tr><th scope="row"><span class="chip">P9.5</span></th><td>Campus Ambassador</td><td>V1 seeded in IIT-B, NMIMS, SRCC, BITS.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
