@@ -62,7 +62,26 @@
     <span class="toolbar__spacer"></span>
 
     <div class="toolbar__actions">
-      <!-- Edit/View toggle, Save indicator, Export menu land in Phases 4–6 -->
+      <span
+        class="toolbar__pill"
+        data-edit-mode-pill
+        hidden
+        aria-live="polite"
+      >
+        <span class="toolbar__pill-dot" aria-hidden="true"></span>
+        Edit mode
+      </span>
+
+      <button
+        type="button"
+        class="toolbar__btn toolbar__btn--primary"
+        data-edit-toggle
+        aria-pressed="false"
+      >
+        <span class="toolbar__btn-icon" aria-hidden="true" data-edit-icon-view>✎</span>
+        <span class="toolbar__btn-icon" aria-hidden="true" data-edit-icon-done hidden>✓</span>
+        <span class="toolbar__btn-label" data-edit-label>Edit</span>
+      </button>
     </div>
   </header>
 

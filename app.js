@@ -1,6 +1,67 @@
 // TradeVerse PRD — client behavior
 // Phase 1.3: mobile nav toggle.
 // Phase 3.1: auto-built TOC + scroll-spy.
+// Phase 4.1: edit/view mode toggle.
+
+/* -------------------------------------------------------------------------- */
+/* Edit/View toggle (Phase 4.1)                                               */
+/* -------------------------------------------------------------------------- */
+const TVEditor = (function initEditMode() {
+  const btn = document.querySelector('[data-edit-toggle]');
+  const labelEl = document.querySelector('[data-edit-label]');
+  const iconView = document.querySelector('[data-edit-icon-view]');
+  const iconDone = document.querySelector('[data-edit-icon-done]');
+  const pill = document.querySelector('[data-edit-mode-pill]');
+  const listeners = new Set();
+
+  const state = { editing: false };
+
+  const apply = () => {
+    document.body.dataset.editMode = state.editing ? 'true' : 'false';
+    if (btn) {
+      btn.setAttribute('aria-pressed', String(state.editing));
+      btn.title = state.editing
+        ? 'Exit edit mode (your changes stay on screen)'
+        : 'Enter edit mode';
+    }
+    if (labelEl) labelEl.textContent = state.editing ? 'Done' : 'Edit';
+    if (iconView) iconView.hidden = state.editing;
+    if (iconDone) iconDone.hidden = !state.editing;
+    if (pill) pill.hidden = !state.editing;
+
+    for (const fn of listeners) {
+      try { fn(state.editing); } catch (e) { console.error(e); }
+    }
+  };
+
+  const set = (value) => {
+    const next = !!value;
+    if (next === state.editing) return;
+    state.editing = next;
+    apply();
+  };
+
+  if (btn) {
+    btn.addEventListener('click', () => set(!state.editing));
+
+    // Keyboard: Cmd/Ctrl + E toggles (avoid clashing with browser shortcuts).
+    document.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && !e.shiftKey && !e.altKey && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        set(!state.editing);
+      }
+    });
+  }
+
+  apply();
+
+  return {
+    isEditing: () => state.editing,
+    set,
+    onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+  };
+})();
 
 /* -------------------------------------------------------------------------- */
 /* Mobile nav toggle (Phase 1.3)                                              */
