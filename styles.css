@@ -587,6 +587,45 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Checklist (Part 2.8) ------------------------------------------ */
+.content .checklist {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 var(--tv-sp-4);
+}
+.content .checklist > li {
+  padding: var(--tv-sp-2) 0;
+  border-bottom: 1px dashed var(--tv-border);
+}
+.content .checklist > li:last-child { border-bottom: 0; }
+.content .checklist label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--tv-sp-3);
+  align-items: start;
+  cursor: default;
+  line-height: var(--tv-lh-snug);
+}
+.content .checklist input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 1.5px solid var(--tv-border-strong);
+  border-radius: var(--tv-radius-xs);
+  background: var(--tv-surface);
+  flex: 0 0 auto;
+}
+.content .checklist input[type="checkbox"]:checked {
+  background: var(--tv-brand);
+  border-color: var(--tv-brand);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M3 8.5l3 3 7-7'/></svg>");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px;
+}
+.content .checklist input[type="checkbox"]:disabled { opacity: 1; }
+
 /* ---------- Document header (Part 2.1) ------------------------------------ */
 .doc-header { margin-bottom: var(--tv-sp-10); }
 
