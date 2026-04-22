@@ -625,6 +625,42 @@ const TVPersistence = (function initPersistence() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Reset to original (hard reset) (Phase 5.3)                                 */
+/* -------------------------------------------------------------------------- */
+(function initReset() {
+  if (!TVPersistence) return;
+  const btn = document.querySelector('[data-reset-button]');
+  if (!btn) return;
+
+  const refreshVisibility = () => {
+    btn.hidden = !TVPersistence.hasStoredEdits();
+  };
+
+  refreshVisibility();
+  TVPersistence.onChange(refreshVisibility);
+
+  btn.addEventListener('click', () => {
+    const ok = window.confirm(
+      'Discard all your edits and reload the original document?\n\n' +
+      'This wipes every local change you have made and cannot be undone.'
+    );
+    if (!ok) return;
+
+    // Disarm the beforeunload guard installed by Phase 5.4 — we want the
+    // reload to proceed without prompting again.
+    if (window.__tvSkipUnloadGuard) window.__tvSkipUnloadGuard();
+
+    try { TVPersistence.clear(); } catch { /* fall through and force reload */ }
+
+    // Hard reset: reload from network (bypassing any in-memory mutations)
+    // by appending a cache-busting query the browser ignores on same-doc.
+    const url = new URL(window.location.href);
+    url.hash = ''; // Don't snap-scroll into the previously-viewed section.
+    window.location.replace(url.toString());
+  });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* "Last saved" status indicator (Phase 5.2)                                  */
 /* -------------------------------------------------------------------------- */
 (function initSaveStatus() {

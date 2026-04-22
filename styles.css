@@ -231,6 +231,20 @@ a:focus-visible {
 .toolbar__btn:hover { background: var(--tv-ink-3); border-color: #3a467a; }
 .toolbar__btn:focus-visible { outline: none; box-shadow: var(--tv-ring-focus); }
 
+.toolbar__btn--danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+.toolbar__btn--danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.75);
+  color: #fff;
+}
+
 .toolbar__btn--primary {
   background: var(--tv-brand);
   border-color: var(--tv-brand-strong);
