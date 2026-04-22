@@ -64,6 +64,91 @@ const TVEditor = (function initEditMode() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* contenteditable wiring on content blocks (Phase 4.2)                       */
+/* -------------------------------------------------------------------------- */
+(function initContentEditable() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  // Block-level editable selectors. Headings (h1–h4) are intentionally excluded
+  // — they're handled by the heading-lock toggle in Phase 4.5. Table cells are
+  // wired in Phase 4.4. The :not() filter respects per-element opt-out via
+  // data-no-edit and skips anchor links inside headings.
+  const SELECTOR = [
+    '#main p:not([data-no-edit])',
+    '#main li:not([data-no-edit])',
+    '#main blockquote:not([data-no-edit])',
+    '#main caption:not([data-no-edit])',
+  ].join(', ');
+
+  // Cache the editable nodes once — DOM is static after Phase 2.
+  const targets = Array.from(document.querySelectorAll(SELECTOR));
+
+  // Tag once for CSS hooks; CSS shows affordances only when in edit mode.
+  for (const el of targets) el.classList.add('is-editable');
+
+  // Avoid making list-item content of the TOC editable (defensive — TOC lives
+  // outside #main, but if anyone moves it inside later, this preserves intent).
+  const skip = (el) => el.closest('.toc, .toolbar, .nav-rail, .back-to-top, .reading-progress');
+
+  const setEditable = (on) => {
+    for (const el of targets) {
+      if (skip(el)) continue;
+      if (on) {
+        el.setAttribute('contenteditable', 'plaintext-only');
+        el.setAttribute('spellcheck', 'true');
+      } else {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('spellcheck');
+        // If a node was being edited, blur it so the caret doesn't linger.
+        if (document.activeElement === el) el.blur();
+      }
+    }
+  };
+
+  // Some browsers (older Safari) ignore contenteditable="plaintext-only";
+  // detect once and fall back to "true" with a paste sanitizer.
+  const supportsPlaintextOnly = (() => {
+    const probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+
+  if (!supportsPlaintextOnly) {
+    // Fallback: full contenteditable + paste-as-plaintext + Enter behavior.
+    const onPaste = (e) => {
+      if (!TVEditor.isEditing()) return;
+      const editable = e.target.closest('[contenteditable="true"], [contenteditable="plaintext-only"]');
+      if (!editable || !main.contains(editable)) return;
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      // Use modern execCommand fallback; deprecated but the cleanest cross-
+      // browser way to insert plain text into a contenteditable.
+      document.execCommand('insertText', false, text);
+    };
+    document.addEventListener('paste', onPaste);
+
+    const setEditableFallback = (on) => {
+      for (const el of targets) {
+        if (skip(el)) continue;
+        if (on) el.setAttribute('contenteditable', 'true');
+        else {
+          el.removeAttribute('contenteditable');
+          if (document.activeElement === el) el.blur();
+        }
+      }
+    };
+    TVEditor.onChange(setEditableFallback);
+    setEditableFallback(TVEditor.isEditing());
+    return;
+  }
+
+  TVEditor.onChange(setEditable);
+  setEditable(TVEditor.isEditing());
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Mobile nav toggle (Phase 1.3)                                              */
 /* -------------------------------------------------------------------------- */
 (function initNavToggle() {
