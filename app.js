@@ -1227,6 +1227,15 @@ const TVExport = (function initExport() {
   };
 
   TVExport.register('markdown', exportMarkdown);
+
+  // Expose a single-node converter so Phase 6.4 (per-section copy) and any
+  // future caller can reuse the same conversion rules without duplicating
+  // the walker.
+  TVExport.nodeToMarkdown = (node) => {
+    if (!node) return '';
+    const md = blockOf(node, { listDepth: 0 });
+    return (md || '').replace(/\n{3,}/g, '\n\n').trim();
+  };
 })();
 
 /* -------------------------------------------------------------------------- */
@@ -1255,6 +1264,100 @@ const TVExport = (function initExport() {
   // Keyboard shortcut Cmd/Ctrl+P is already wired by the browser to
   // window.print(); our @media print stylesheet picks it up automatically.
   // No extra binding needed here.
+})();
+
+/* -------------------------------------------------------------------------- */
+/* Per-section copy button (Phase 6.4)                                        */
+/* -------------------------------------------------------------------------- */
+(function initSectionCopy() {
+  if (!TVExport || typeof TVExport.nodeToMarkdown !== 'function') return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const sections = main.querySelectorAll(':scope > section[id]');
+  if (!sections.length) return;
+
+  for (const sec of sections) {
+    if (sec.querySelector(':scope > .section-copy')) continue; // idempotent
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'section-copy';
+    btn.setAttribute('aria-label', 'Copy this section as Markdown');
+    btn.dataset.sectionCopy = sec.id;
+    btn.innerHTML =
+      '<span class="section-copy__icon" aria-hidden="true">⎘</span>' +
+      '<span class="section-copy__label">Copy</span>';
+    sec.appendChild(btn);
+  }
+
+  const setState = (btn, state, label) => {
+    btn.dataset.state = state;
+    const labelEl = btn.querySelector('.section-copy__label');
+    if (labelEl) labelEl.textContent = label;
+    if (state === 'copied' || state === 'error') {
+      // Snap back to default after 1.4s.
+      clearTimeout(btn.__tvResetTimer);
+      btn.__tvResetTimer = setTimeout(() => {
+        delete btn.dataset.state;
+        if (labelEl) labelEl.textContent = 'Copy';
+      }, 1400);
+    }
+  };
+
+  const copy = async (markdown) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(markdown);
+      return true;
+    }
+    // Legacy fallback for old / locked-down browsers.
+    const ta = document.createElement('textarea');
+    ta.value = markdown;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(ta);
+    if (!ok) throw new Error('Clipboard unavailable');
+    return true;
+  };
+
+  main.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.section-copy');
+    if (!btn) return;
+    e.preventDefault();
+    const sec = btn.closest('section[id]');
+    if (!sec) return;
+
+    // Flush pending edits so the copied content matches what's on screen.
+    if (typeof TVPersistence !== 'undefined' && TVPersistence) {
+      try { TVPersistence.saveNow(); } catch { /* noop */ }
+    }
+
+    let markdown = '';
+    try {
+      // Clone so we can strip the copy button itself before serializing.
+      const clone = sec.cloneNode(true);
+      clone.querySelectorAll('.section-copy').forEach((n) => n.remove());
+      markdown = TVExport.nodeToMarkdown(clone);
+    } catch (err) {
+      console.error('Section serialization failed:', err);
+    }
+
+    if (!markdown) {
+      setState(btn, 'error', 'Empty');
+      return;
+    }
+
+    try {
+      await copy(markdown);
+      setState(btn, 'copied', 'Copied');
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+      setState(btn, 'error', 'Failed');
+    }
+  });
 })();
 
 /* -------------------------------------------------------------------------- */
