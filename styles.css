@@ -487,6 +487,17 @@ a:focus-visible {
 .content tbody tr:nth-child(even) th { background: #fafbfd; }
 .content tbody tr:hover td,
 .content tbody tr:hover th { background: var(--tv-brand-soft); }
+
+/* Cells must keep some breathing room while editing so the table doesn't
+   collapse when a user clears a value. (Phase 4.4) */
+body[data-edit-mode="true"] .content :is(td, th) {
+  min-width: 4ch;
+  word-break: break-word;
+}
+body[data-edit-mode="true"] .content :is(td, th).is-editable:focus {
+  /* Override the row-hover background while a cell is focused for editing. */
+  background: rgba(79, 124, 255, 0.10) !important;
+}
 .content tbody tr:last-child td,
 .content tbody tr:last-child th { border-bottom: 0; }
 
@@ -691,7 +702,7 @@ body[data-edit-mode="true"] .is-editable .is-editable {
 
 /* Subtle banner under the toolbar so the user knows the doc is now mutable. */
 body[data-edit-mode="true"] .content::before {
-  content: "Edit mode is on — click any paragraph, list item, or quote to type. Press " attr(data-shortcut-hint) " to leave edit mode.";
+  content: "Edit mode is on — click any paragraph, list item, quote, or table cell to type. Tab moves between cells. Press " attr(data-shortcut-hint) " to leave edit mode.";
   display: block;
   margin: 0 0 var(--tv-sp-6);
   padding: var(--tv-sp-3) var(--tv-sp-4);

@@ -211,6 +211,139 @@ const TVEditor = (function initEditMode() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Table cell editing + navigation (Phase 4.4)                                */
+/* -------------------------------------------------------------------------- */
+(function initTableCellEditing() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const cells = Array.from(main.querySelectorAll(
+    'table th:not([data-no-edit]), table td:not([data-no-edit])'
+  ));
+  if (!cells.length) return;
+
+  for (const cell of cells) cell.classList.add('is-editable');
+
+  const supportsPlaintextOnly = (() => {
+    const probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+  const editableValue = supportsPlaintextOnly ? 'plaintext-only' : 'true';
+
+  const setEditable = (on) => {
+    for (const cell of cells) {
+      if (on) {
+        cell.setAttribute('contenteditable', editableValue);
+        cell.setAttribute('spellcheck', 'true');
+      } else {
+        cell.removeAttribute('contenteditable');
+        cell.removeAttribute('spellcheck');
+        if (document.activeElement === cell) cell.blur();
+      }
+    }
+  };
+
+  TVEditor.onChange(setEditable);
+  setEditable(TVEditor.isEditing());
+
+  // Keyboard navigation between cells while editing.
+  const moveSelection = (cell) => {
+    cell.focus();
+    // Place caret at end of the cell content.
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  const cellAt = (table, rowIdx, colIdx) => {
+    const rows = table.rows;
+    if (rowIdx < 0 || rowIdx >= rows.length) return null;
+    const row = rows[rowIdx];
+    if (colIdx < 0 || colIdx >= row.cells.length) return null;
+    return row.cells[colIdx];
+  };
+
+  const findEditable = (start, dir, axis) => {
+    // Walk in the requested direction until we find an editable cell.
+    const table = start.closest('table');
+    if (!table) return null;
+    let row = start.parentElement.rowIndex;
+    let col = start.cellIndex;
+    let safety = 0;
+    while (safety++ < 1000) {
+      if (axis === 'col') {
+        col += dir;
+        if (col < 0) {
+          row -= 1;
+          if (row < 0) return null;
+          const r = table.rows[row];
+          if (!r) return null;
+          col = r.cells.length - 1;
+        } else {
+          const r = table.rows[row];
+          if (col >= r.cells.length) {
+            row += 1;
+            col = 0;
+            if (row >= table.rows.length) return null;
+          }
+        }
+      } else {
+        row += dir;
+        if (row < 0 || row >= table.rows.length) return null;
+      }
+      const next = cellAt(table, row, col);
+      if (next && next.matches('.is-editable')) return next;
+      if (!next) return null;
+    }
+    return null;
+  };
+
+  main.addEventListener('keydown', (e) => {
+    if (!TVEditor.isEditing()) return;
+    const cell = e.target.closest('th, td');
+    if (!cell || !main.contains(cell)) return;
+
+    if (e.key === 'Tab') {
+      const next = findEditable(cell, e.shiftKey ? -1 : 1, 'col');
+      if (next) {
+        e.preventDefault();
+        moveSelection(next);
+      }
+      return;
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Move to the cell directly below (spreadsheet behavior).
+      const next = findEditable(cell, 1, 'row');
+      if (next) {
+        e.preventDefault();
+        moveSelection(next);
+      } else {
+        // No row below — block the newline so the cell doesn't grow taller.
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === 'Enter' && e.shiftKey) {
+      // Shift+Enter = move up one row.
+      const prev = findEditable(cell, -1, 'row');
+      if (prev) {
+        e.preventDefault();
+        moveSelection(prev);
+      } else {
+        e.preventDefault();
+      }
+    }
+  });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Mobile nav toggle (Phase 1.3)                                              */
 /* -------------------------------------------------------------------------- */
 (function initNavToggle() {
