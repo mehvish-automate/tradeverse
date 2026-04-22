@@ -215,3 +215,100 @@
     else pickActive();
   });
 })();
+
+/* -------------------------------------------------------------------------- */
+/* TOC search/filter (Phase 3.3)                                              */
+/* -------------------------------------------------------------------------- */
+(function initTOCSearch() {
+  const input = document.querySelector('[data-toc-search]');
+  const clear = document.querySelector('[data-toc-search-clear]');
+  const empty = document.querySelector('[data-toc-empty]');
+  const list = document.querySelector('[data-toc-list]');
+  if (!input || !clear || !empty || !list) return;
+
+  // Wait until the TOC has been built before snapshotting the original labels.
+  const snapshot = () => {
+    return Array.from(list.querySelectorAll('.toc__item')).map((li) => {
+      const textEl = li.querySelector('.toc__text');
+      return {
+        item: li,
+        textEl,
+        original: (textEl && textEl.textContent) || '',
+      };
+    });
+  };
+
+  let entries = [];
+  // Defer to next frame so initTOC's append loop has run.
+  requestAnimationFrame(() => { entries = snapshot(); });
+
+  const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const apply = (raw) => {
+    if (!entries.length) entries = snapshot();
+    const q = raw.trim().toLowerCase();
+    let visible = 0;
+
+    if (!q) {
+      for (const e of entries) {
+        e.item.hidden = false;
+        if (e.textEl) e.textEl.textContent = e.original;
+      }
+      empty.hidden = true;
+      clear.hidden = true;
+      return;
+    }
+
+    const re = new RegExp(escapeRe(q), 'ig');
+    for (const e of entries) {
+      const match = e.original.toLowerCase().includes(q);
+      e.item.hidden = !match;
+      if (!e.textEl) continue;
+      if (match) {
+        e.textEl.innerHTML = escapeHtml(e.original).replace(re, (m) =>
+          '<mark class="toc__match">' + escapeHtml(m) + '</mark>'
+        );
+        visible++;
+      } else {
+        e.textEl.textContent = e.original;
+      }
+    }
+    empty.hidden = visible > 0;
+    clear.hidden = false;
+  };
+
+  input.addEventListener('input', (e) => apply(e.target.value));
+
+  clear.addEventListener('click', () => {
+    input.value = '';
+    apply('');
+    input.focus();
+  });
+
+  // Keyboard: '/' focuses the filter (unless already typing in another input).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    const tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
+    e.preventDefault();
+    input.focus();
+    input.select();
+  });
+
+  // ESC clears (when input is focused) or blurs.
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (input.value) {
+        input.value = '';
+        apply('');
+      } else {
+        input.blur();
+      }
+    }
+  });
+})();

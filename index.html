@@ -58,10 +58,32 @@
   <div class="layout">
     <aside id="nav-rail" class="nav-rail" aria-label="Document navigation">
       <p class="nav-rail__eyebrow">Contents</p>
+
+      <div class="toc-search" role="search">
+        <input
+          type="search"
+          class="toc-search__input"
+          placeholder="Filter sections…"
+          aria-label="Filter table of contents"
+          autocomplete="off"
+          spellcheck="false"
+          data-toc-search
+        />
+        <button
+          type="button"
+          class="toc-search__clear"
+          aria-label="Clear filter"
+          data-toc-search-clear
+          hidden
+        >×</button>
+        <kbd class="toc-search__hint" aria-hidden="true">/</kbd>
+      </div>
+
       <nav class="toc" aria-label="Table of contents">
         <ol class="toc__list" data-toc-list>
           <!-- Auto-populated from <main> H2 sections by app.js -->
         </ol>
+        <p class="toc__empty" data-toc-empty hidden>No sections match.</p>
       </nav>
     </aside>
 

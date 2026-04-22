@@ -648,6 +648,85 @@ a:focus-visible {
   .content :target { animation: none; }
 }
 
+/* ---------- TOC search (Part 3.3) ----------------------------------------- */
+.toc-search {
+  position: relative;
+  margin: 0 0 var(--tv-sp-3);
+}
+.toc-search__input {
+  width: 100%;
+  padding: var(--tv-sp-2) 2.25rem var(--tv-sp-2) var(--tv-sp-3);
+  background: var(--tv-ink-2);
+  color: var(--tv-text-on-dark);
+  border: 1px solid var(--tv-ink-line);
+  border-radius: var(--tv-radius-sm);
+  font-size: var(--tv-fs-small);
+  transition: border-color var(--tv-dur-fast) var(--tv-ease),
+              box-shadow var(--tv-dur-fast) var(--tv-ease);
+}
+.toc-search__input::placeholder { color: var(--tv-text-on-dark-muted); }
+.toc-search__input:focus {
+  outline: none;
+  border-color: var(--tv-brand);
+  box-shadow: var(--tv-ring-focus);
+}
+.toc-search__input::-webkit-search-cancel-button { display: none; }
+
+.toc-search__clear {
+  position: absolute;
+  right: var(--tv-sp-2);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--tv-text-on-dark-muted);
+  border-radius: var(--tv-radius-pill);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toc-search__clear:hover { color: var(--tv-text-on-dark); background: var(--tv-ink-3); }
+.toc-search__clear:focus-visible { outline: none; box-shadow: var(--tv-ring-focus); }
+
+.toc-search__hint {
+  position: absolute;
+  right: var(--tv-sp-2);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--tv-font-mono);
+  font-size: 0.7rem;
+  padding: 0.05em 0.4em;
+  background: var(--tv-ink-3);
+  color: var(--tv-text-on-dark-muted);
+  border: 1px solid var(--tv-ink-line);
+  border-radius: var(--tv-radius-xs);
+  pointer-events: none;
+  transition: opacity var(--tv-dur-fast) var(--tv-ease);
+}
+.toc-search__input:focus ~ .toc-search__hint,
+.toc-search:has(.toc-search__clear:not([hidden])) .toc-search__hint { opacity: 0; }
+
+/* Highlight inside TOC labels for matched substrings. */
+.toc__match {
+  background: rgba(247, 181, 0, 0.35);
+  color: var(--tv-text-on-dark);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.toc__empty {
+  color: var(--tv-text-on-dark-muted);
+  font-size: var(--tv-fs-small);
+  padding: var(--tv-sp-3) var(--tv-sp-2);
+  margin: 0;
+}
+
 /* ---------- TOC (Part 3.1) ------------------------------------------------ */
 .nav-rail__eyebrow {
   font-size: var(--tv-fs-micro);
