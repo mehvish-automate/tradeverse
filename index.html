@@ -1000,6 +1000,171 @@
         </div>
       </section>
 
+      <!-- =========================================================
+           14. Revenue Model
+           ========================================================= -->
+      <section id="sec-14-revenue-model" aria-labelledby="h-14">
+        <h2 id="h-14">14. Revenue Model</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Phase</th>
+                <th scope="col">Primary</th>
+                <th scope="col">Secondary</th>
+                <th scope="col">Tertiary</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">MVP</span></th>
+                <td>—</td><td>—</td><td>—</td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">V2</span></th>
+                <td>B2B white-label seats</td>
+                <td>Consumer subscription (₹99/mo)</td>
+                <td>IAP + sponsored challenges</td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">V3</span></th>
+                <td>B2B seats + skill-gaming tournaments (rake)</td>
+                <td>Consumer subscription</td>
+                <td>Creator economy take-rate</td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">V4</span></th>
+                <td>All V3 + global markets expansion</td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--neutral">
+          <span class="callout__icon" aria-hidden="true">·</span>
+          <div>
+            <p>
+              <strong>Fest hosting: free.</strong> Institutes/Clubs never pay to host.
+              This is top-of-funnel for B2B conversion.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           15. FOMO Mechanics (Ethics-Locked)
+           ========================================================= -->
+      <section id="sec-15-fomo-mechanics" aria-labelledby="h-15">
+        <h2 id="h-15">15. FOMO Mechanics <span class="badge badge--locked">Ethics-Locked</span></h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Mechanic</th>
+                <th scope="col">Status</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Market-open streak window (9:00–9:30 IST)</td><td><span class="badge badge--ok">On</span></td><td>Conditions habit to market awareness, not trading.</td></tr>
+              <tr><td>Friend overtake push notifications</td><td><span class="badge badge--ok">On</span></td><td>Paper scores only.</td></tr>
+              <tr><td>Lesson/skill-tree decay</td><td><span class="badge badge--ok">On</span></td><td>Productive friction.</td></tr>
+              <tr><td>Invite expiry (24h)</td><td><span class="badge badge--ok">On</span></td><td>—</td></tr>
+              <tr><td>"Your instinct score dropped 12 points this week"</td><td><span class="badge badge--ok">On</span></td><td>Self-knowledge framing.</td></tr>
+              <tr><td>"You would have earned ₹X if you traded this"</td><td><span class="badge badge--locked">Killed</span></td><td>Off-brand.</td></tr>
+              <tr><td>P&amp;L leaderboards on real money</td><td><span class="badge badge--neutral">N/A</span></td><td>No real money exists.</td></tr>
+              <tr><td>Confetti on real-money profits</td><td><span class="badge badge--neutral">N/A</span></td><td>No real money exists.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <span class="callout__icon" aria-hidden="true">i</span>
+          <div>
+            <p class="callout__title">Invariant</p>
+            <p>Every FOMO lever is ethically defensible because <strong>no user ever loses a rupee on this platform.</strong></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           16. UX Principles
+           ========================================================= -->
+      <section id="sec-16-ux-principles" aria-labelledby="h-16">
+        <h2 id="h-16">16. UX Principles</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Surface</th>
+                <th scope="col">Style</th>
+                <th scope="col">Principle</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Play</strong> (challenges, leagues, streaks, clans)</td>
+                <td>Bright, colorful, sound, confetti</td>
+                <td>Reduce friction, maximize dopamine.</td>
+              </tr>
+              <tr>
+                <td><strong>Reflection</strong> (analytics, journal, report card)</td>
+                <td>Muted, data-dense, honest</td>
+                <td>Productive friction — force self-assessment.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--neutral">
+          <span class="callout__icon" aria-hidden="true">·</span>
+          <div>
+            <p class="callout__title">Invariants</p>
+            <ul>
+              <li><strong>No financial advice, ever.</strong> Disclaimer on every market-adjacent screen.</li>
+              <li><strong>Honest feedback</strong> — tell users where they were wrong, not just "great job."</li>
+              <li><strong>Visual-first;</strong> text is minimal (≤12 words per question screen).</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           17. Non-Functional Requirements
+           ========================================================= -->
+      <section id="sec-17-nfrs" aria-labelledby="h-17">
+        <h2 id="h-17">17. Non-Functional Requirements</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Category</th>
+                <th scope="col">Requirement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Performance</th><td>p95 screen-to-interactive &lt; 1.5s; p95 question load &lt; 400ms; event clock drift ≤500ms.</td></tr>
+              <tr><th scope="row">Scale (MVP)</th><td>100K MAU; 50 concurrent/room; 10K events/day.</td></tr>
+              <tr><th scope="row">Scale (V2)</th><td>1M MAU; 500 concurrent/room; 100K events/day.</td></tr>
+              <tr><th scope="row">Platforms</th><td>iOS 15+, Android 10+; Web (responsive) for leaderboards &amp; profile only in V1.</td></tr>
+              <tr><th scope="row">Data</th><td>NSE EOD (MVP) → NSE 15-min delayed (V2) → NSE real-time (V3).</td></tr>
+              <tr><th scope="row">Observability</th><td>Amplitude/Mixpanel event analytics; crash-free ≥99.5%.</td></tr>
+              <tr><th scope="row">Privacy</th><td>DPDP Act compliance; DPO by Month 6; India data residency.</td></tr>
+              <tr><th scope="row">Security</th><td>Phone OTP + Google/Apple; no PAN / Aadhaar in V1.</td></tr>
+              <tr><th scope="row">Moderation</th><td>AI + human queue for voice recordings, custom questions, chat.</td></tr>
+              <tr><th scope="row">Accessibility</th><td>WCAG AA on core flows; dynamic text; colorblind-safe charts.</td></tr>
+              <tr><th scope="row">Language</th><td>English only, all versions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
