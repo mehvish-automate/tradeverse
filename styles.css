@@ -645,6 +645,65 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Editing affordances (Part 4.3) -------------------------------- */
+/* Affordances only render in edit mode. View mode keeps the doc pristine. */
+
+body[data-edit-mode="true"] .is-editable {
+  position: relative;
+  border-radius: var(--tv-radius-xs);
+  cursor: text;
+  transition: background var(--tv-dur-fast) var(--tv-ease),
+              box-shadow var(--tv-dur-fast) var(--tv-ease);
+  /* Use inset box-shadow as a left edge marker so it never shifts layout. */
+  box-shadow: inset 3px 0 0 transparent;
+  margin-left: -6px;
+  padding-left: 6px;
+}
+
+body[data-edit-mode="true"] .is-editable:hover {
+  background: rgba(79, 124, 255, 0.05);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tv-brand) 35%, transparent);
+}
+
+body[data-edit-mode="true"] .is-editable:focus {
+  outline: none;
+  background: rgba(79, 124, 255, 0.08);
+  box-shadow: inset 3px 0 0 var(--tv-brand),
+              0 0 0 2px rgba(79, 124, 255, 0.18);
+}
+
+/* Empty placeholder. Driven by JS-applied data-empty for reliability — pure
+   :empty doesn't fire when contenteditable inserts a stray <br>. */
+body[data-edit-mode="true"] .is-editable[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  color: var(--tv-text-faint);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Don't double-pad nested editables (e.g. <li><p>…</p></li> if it happens). */
+body[data-edit-mode="true"] .is-editable .is-editable {
+  margin-left: 0;
+  padding-left: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* Subtle banner under the toolbar so the user knows the doc is now mutable. */
+body[data-edit-mode="true"] .content::before {
+  content: "Edit mode is on — click any paragraph, list item, or quote to type. Press " attr(data-shortcut-hint) " to leave edit mode.";
+  display: block;
+  margin: 0 0 var(--tv-sp-6);
+  padding: var(--tv-sp-3) var(--tv-sp-4);
+  background: rgba(247, 181, 0, 0.08);
+  border: 1px solid rgba(247, 181, 0, 0.35);
+  border-left: 3px solid var(--tv-accent);
+  border-radius: var(--tv-radius-md);
+  color: var(--tv-text-muted);
+  font-size: var(--tv-fs-small);
+  line-height: var(--tv-lh-snug);
+}
+
 /* ---------- Reading progress + back-to-top (Part 3.4) --------------------- */
 .reading-progress {
   position: fixed;

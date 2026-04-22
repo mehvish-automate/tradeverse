@@ -149,6 +149,68 @@ const TVEditor = (function initEditMode() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Editing affordances: placeholders + empty-state tracking (Phase 4.3)       */
+/* -------------------------------------------------------------------------- */
+(function initEditAffordances() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const PLACEHOLDERS = {
+    P: 'Empty paragraph',
+    LI: 'Empty list item',
+    BLOCKQUOTE: 'Empty quote',
+    CAPTION: 'Caption',
+    TD: '—',
+    TH: '—',
+  };
+
+  const editables = Array.from(document.querySelectorAll('#main .is-editable'));
+  for (const el of editables) {
+    if (!el.hasAttribute('data-placeholder')) {
+      const fallback = PLACEHOLDERS[el.tagName] || 'Empty';
+      el.setAttribute('data-placeholder', fallback);
+    }
+  }
+
+  const isEffectivelyEmpty = (el) => {
+    // Treat ' ', ' ', and stray <br> as empty.
+    const txt = (el.textContent || '').replace(/ /g, ' ').trim();
+    if (txt.length > 0) return false;
+    // If only children are <br>s, it's empty.
+    return Array.from(el.children).every((c) => c.tagName === 'BR');
+  };
+
+  const refresh = (el) => {
+    if (isEffectivelyEmpty(el)) el.dataset.empty = 'true';
+    else delete el.dataset.empty;
+  };
+
+  // Initial sweep.
+  for (const el of editables) refresh(el);
+
+  // Track changes only while in edit mode (events on <main> bubble up).
+  const onInput = (e) => {
+    if (!TVEditor.isEditing()) return;
+    const el = e.target.closest('.is-editable');
+    if (el) refresh(el);
+  };
+  const onBlur = (e) => {
+    const el = e.target.closest('.is-editable');
+    if (el) refresh(el);
+  };
+
+  main.addEventListener('input', onInput);
+  main.addEventListener('blur', onBlur, true);
+
+  // Re-sweep when entering edit mode (covers any DOM mutations done in view).
+  TVEditor.onChange((on) => {
+    if (!on) return;
+    for (const el of editables) refresh(el);
+  });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Mobile nav toggle (Phase 1.3)                                              */
 /* -------------------------------------------------------------------------- */
 (function initNavToggle() {
