@@ -587,6 +587,67 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Heading anchors (Part 3.2) ------------------------------------ */
+.content :is(h2, h3) {
+  position: relative;
+}
+.content .anchor-link {
+  position: absolute;
+  left: -1.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.2em;
+  height: 1.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--tv-font-mono);
+  font-weight: var(--tv-fw-regular);
+  font-size: 0.7em;
+  color: var(--tv-text-faint);
+  text-decoration: none;
+  border-radius: var(--tv-radius-xs);
+  opacity: 0;
+  transition: opacity var(--tv-dur-fast) var(--tv-ease),
+              color var(--tv-dur-fast) var(--tv-ease),
+              background var(--tv-dur-fast) var(--tv-ease);
+}
+.content :is(h2, h3):hover .anchor-link,
+.content .anchor-link:focus-visible {
+  opacity: 1;
+}
+.content .anchor-link:hover {
+  color: var(--tv-brand);
+  background: var(--tv-brand-soft);
+  text-decoration: none;
+}
+.content .anchor-link[data-copied="true"] {
+  opacity: 1;
+  color: var(--tv-status-ok-fg);
+  background: var(--tv-status-ok-bg);
+}
+
+@media (max-width: 720px) {
+  .content .anchor-link {
+    position: static;
+    transform: none;
+    margin-left: var(--tv-sp-2);
+    opacity: 0.4;
+  }
+}
+
+/* Hash-target highlight flash */
+@keyframes tv-target-flash {
+  0%, 12% { background-color: rgba(247, 181, 0, 0.18); }
+  100%    { background-color: transparent; }
+}
+.content :target {
+  animation: tv-target-flash 1.6s var(--tv-ease) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .content :target { animation: none; }
+}
+
 /* ---------- TOC (Part 3.1) ------------------------------------------------ */
 .nav-rail__eyebrow {
   font-size: var(--tv-fs-micro);

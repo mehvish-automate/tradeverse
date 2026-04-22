@@ -43,6 +43,71 @@
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Heading anchors + copy link (Phase 3.2)                                    */
+/* -------------------------------------------------------------------------- */
+(function initHeadingAnchors() {
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const headings = main.querySelectorAll('h2[id], h3[id], h4[id]');
+  for (const h of headings) {
+    if (h.querySelector('.anchor-link')) continue;
+    const a = document.createElement('a');
+    a.className = 'anchor-link';
+    a.href = '#' + h.id;
+    a.setAttribute('aria-label', 'Copy link to ' + (h.textContent || '').trim());
+    a.textContent = '#';
+    h.appendChild(a);
+  }
+
+  main.addEventListener('click', async (e) => {
+    const a = e.target.closest('.anchor-link');
+    if (!a) return;
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    // Update URL hash without jumping (smooth scroll handles motion).
+    history.replaceState(null, '', '#' + id);
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Copy a full deep-link if the Clipboard API is available.
+    const url = location.origin + location.pathname + '#' + id;
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      }
+    } catch { /* clipboard blocked — silent fail, hash still updates */ }
+
+    if (copied) {
+      a.dataset.copied = 'true';
+      const original = a.textContent;
+      a.textContent = '✓';
+      setTimeout(() => {
+        a.textContent = original;
+        delete a.dataset.copied;
+      }, 1200);
+    }
+  });
+
+  // If we arrived with a hash, ensure the section is properly focused for AT.
+  if (location.hash) {
+    const target = document.getElementById(location.hash.slice(1));
+    if (target) {
+      // Wait for layout, then re-trigger :target highlight reliably.
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      });
+    }
+  }
+})();
+
+/* -------------------------------------------------------------------------- */
 /* TOC builder + scroll-spy (Phase 3.1)                                       */
 /* -------------------------------------------------------------------------- */
 (function initTOC() {
