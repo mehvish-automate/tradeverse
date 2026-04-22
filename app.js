@@ -882,6 +882,354 @@ const TVExport = (function initExport() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Markdown export (Phase 6.2)                                                */
+/*                                                                            */
+/*   Walks the live <main> tree and emits GitHub-flavored Markdown:           */
+/*    - inline elements (strong, em, code, links) preserved                   */
+/*    - status badges → `[LABEL]`, chips → `LABEL`                            */
+/*    - callouts → GitHub admonitions (> [!NOTE]/[!TIP]/[!WARNING]/[!CAUTION])*/
+/*    - tables → GFM pipe tables (| … |) with `|` escaped in cells            */
+/*    - lists nested via two-space indent; ordered lists numbered             */
+/* -------------------------------------------------------------------------- */
+(function initMarkdownExport() {
+  if (!TVExport) return;
+
+  // ---- Helpers -------------------------------------------------------------
+  const SKIP_CLASSES = new Set([
+    'anchor-link', 'lock-warning', 'toc', 'toolbar', 'back-to-top',
+    'reading-progress', 'nav-rail', 'nav-scrim', 'toolbar__pill',
+    'toolbar__status', 'toolbar__menu',
+  ]);
+
+  const shouldSkip = (el) => {
+    if (!el || !el.classList) return false;
+    for (const cls of SKIP_CLASSES) if (el.classList.contains(cls)) return true;
+    if (el.dataset && el.dataset.exportSkip === 'true') return true;
+    return false;
+  };
+
+  // Light text escape — only the chars that would otherwise create unintended
+  // markdown structure inside flowing prose. Aggressive escaping mangles
+  // currency symbols and numerics that appear all over the PRD.
+  const escText = (s) => (s || '').replace(/([\\`*_{}[\]()#+|])/g, '\\$1')
+                                  .replace(/&nbsp;/g, ' ');
+
+  const collapse = (s) => (s || '').replace(/\s+/g, ' ');
+
+  // ---- Inline conversion ---------------------------------------------------
+  const inlineOf = (node) => {
+    if (!node) return '';
+    let out = '';
+    for (const child of node.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out += escText(child.nodeValue);
+        continue;
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue;
+      if (shouldSkip(child)) continue;
+      out += inlineEl(child);
+    }
+    return out;
+  };
+
+  const inlineEl = (el) => {
+    const tag = el.tagName.toLowerCase();
+    switch (tag) {
+      case 'strong':
+      case 'b':
+        return '**' + inlineOf(el) + '**';
+      case 'em':
+      case 'i':
+        return '*' + inlineOf(el) + '*';
+      case 'code':
+        return '`' + (el.textContent || '') + '`';
+      case 'kbd':
+      case 'samp':
+        return '<' + tag + '>' + (el.textContent || '') + '</' + tag + '>';
+      case 'a': {
+        if (el.classList.contains('anchor-link')) return '';
+        const text = inlineOf(el).trim() || el.textContent.trim();
+        const href = el.getAttribute('href') || '';
+        return href ? '[' + text + '](' + href + ')' : text;
+      }
+      case 'br':
+        return '  \n';
+      case 'span': {
+        if (el.classList.contains('badge')) {
+          const label = (el.textContent || '').trim().toUpperCase();
+          return '`[' + label + ']`';
+        }
+        if (el.classList.contains('chip')) {
+          const label = (el.textContent || '').trim();
+          return '`' + label + '`';
+        }
+        return inlineOf(el);
+      }
+      default:
+        return inlineOf(el);
+    }
+  };
+
+  // ---- Block conversion ----------------------------------------------------
+  // Each block returns its markdown WITHOUT leading/trailing blank lines —
+  // the joiner in childrenToMarkdown adds the blank-line separator.
+  const blockOf = (node, ctx) => {
+    if (!node) return '';
+    if (node.nodeType === Node.TEXT_NODE) {
+      const t = (node.nodeValue || '').trim();
+      return t ? escText(collapse(t)) : '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    if (shouldSkip(node)) return '';
+
+    const tag = node.tagName.toLowerCase();
+
+    switch (tag) {
+      case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
+        const level = parseInt(tag[1], 10);
+        const text = inlineOf(node).replace(/\s+#$/, '').trim();
+        return '#'.repeat(level) + ' ' + text;
+      }
+
+      case 'p':
+        return inlineOf(node).trim();
+
+      case 'hr':
+        return '---';
+
+      case 'ul':
+      case 'ol':
+        return listOf(node, tag, ctx);
+
+      case 'blockquote': {
+        const inner = childrenToMarkdown(node, ctx).trim();
+        return inner.split('\n').map((l) => '> ' + l).join('\n');
+      }
+
+      case 'pre': {
+        const code = node.textContent || '';
+        return '```\n' + code.replace(/\n$/, '') + '\n```';
+      }
+
+      case 'table':
+        return tableOf(node);
+
+      case 'figure':
+      case 'div': {
+        if (node.classList.contains('callout')) return calloutOf(node, ctx);
+        if (node.classList.contains('table-wrap')) return childrenToMarkdown(node, ctx);
+        if (node.classList.contains('doc-status')) return statusRowOf(node);
+        if (node.classList.contains('doc-meta')) return childrenToMarkdown(node, ctx);
+        if (node.classList.contains('lock-warning')) return '';
+        return childrenToMarkdown(node, ctx);
+      }
+
+      case 'header':
+      case 'section':
+      case 'article':
+      case 'main':
+        return childrenToMarkdown(node, ctx);
+
+      default:
+        return childrenToMarkdown(node, ctx);
+    }
+  };
+
+  const childrenToMarkdown = (node, ctx) => {
+    const parts = [];
+    for (const child of node.childNodes) {
+      const md = blockOf(child, ctx);
+      if (md && md.trim()) parts.push(md);
+    }
+    return parts.join('\n\n');
+  };
+
+  // ---- Lists ---------------------------------------------------------------
+  const listOf = (ul, kind, ctx) => {
+    const depth = (ctx && ctx.listDepth) || 0;
+    const indent = '  '.repeat(depth);
+    const lines = [];
+    let i = 1;
+    for (const child of ul.children) {
+      if (child.tagName !== 'LI') continue;
+      const marker = kind === 'ol' ? (i + '. ') : '- ';
+      const item = liToMarkdown(child, { ...ctx, listDepth: depth + 1 });
+      const itemLines = item.split('\n');
+      lines.push(indent + marker + itemLines[0]);
+      // Continuation / nested-list lines get the same indent + 2 spaces of
+      // hanging indent so GFM keeps them attached to the same list item.
+      for (let j = 1; j < itemLines.length; j++) {
+        lines.push(indent + '  ' + itemLines[j]);
+      }
+      i++;
+    }
+    return lines.join('\n');
+  };
+
+  const liToMarkdown = (li, ctx) => {
+    // GFM task list detection: <li><label><input type=checkbox …> Text</label></li>
+    const checkbox = li.querySelector(':scope > label > input[type="checkbox"]');
+    if (checkbox) {
+      const label = li.querySelector(':scope > label');
+      const clone = label.cloneNode(true);
+      clone.querySelectorAll('input').forEach((i) => i.remove());
+      const text = inlineOf(clone).replace(/\s+/g, ' ').trim();
+      return (checkbox.checked ? '[x] ' : '[ ] ') + text;
+    }
+
+    let main = '';
+    const tail = [];
+    for (const child of li.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        main += escText(child.nodeValue);
+        continue;
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue;
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'ul' || tag === 'ol') {
+        tail.push(blockOf(child, ctx));
+      } else if (tag === 'p') {
+        if (main.trim()) tail.push(inlineOf(child).trim());
+        else main += inlineOf(child);
+      } else {
+        main += inlineEl(child);
+      }
+    }
+    main = main.replace(/\s+/g, ' ').trim();
+    if (!tail.length) return main;
+    return main + '\n' + tail.join('\n');
+  };
+
+  // ---- Tables --------------------------------------------------------------
+  const cellText = (cell) =>
+    inlineOf(cell).replace(/\n+/g, ' ').replace(/\|/g, '\\|').trim();
+
+  const tableOf = (table) => {
+    const lines = [];
+    const caption = table.querySelector(':scope > caption');
+    if (caption) {
+      lines.push('*' + inlineOf(caption).trim() + '*');
+      lines.push('');
+    }
+
+    let header = [];
+    if (table.tHead) {
+      const headerRow = table.tHead.rows[0];
+      if (headerRow) header = Array.from(headerRow.cells).map(cellText);
+    }
+
+    const bodyRows = [];
+    for (const tbody of table.tBodies) {
+      for (const tr of tbody.rows) {
+        bodyRows.push(Array.from(tr.cells).map(cellText));
+      }
+    }
+
+    // GFM requires a header. If the table didn't have one, fabricate a blank
+    // header row from the first body row's column count.
+    if (!header.length && bodyRows.length) {
+      header = bodyRows[0].map(() => ' ');
+    }
+    if (!header.length) return '';
+
+    lines.push('| ' + header.join(' | ') + ' |');
+    lines.push('| ' + header.map(() => '---').join(' | ') + ' |');
+    for (const row of bodyRows) {
+      // Pad short rows to header length so the table stays valid.
+      while (row.length < header.length) row.push('');
+      lines.push('| ' + row.join(' | ') + ' |');
+    }
+    return lines.join('\n');
+  };
+
+  // ---- Callouts ------------------------------------------------------------
+  const KIND_FROM_CLASS = {
+    'callout--warn':    'WARNING',
+    'callout--danger':  'CAUTION',
+    'callout--success': 'TIP',
+    'callout--neutral': 'NOTE',
+  };
+
+  const calloutOf = (div, ctx) => {
+    let kind = 'NOTE';
+    for (const cls of div.classList) {
+      if (KIND_FROM_CLASS[cls]) { kind = KIND_FROM_CLASS[cls]; break; }
+    }
+    // Inner content lives in the second child div (first is the icon span).
+    const content = div.querySelector(':scope > div');
+    if (!content) return '> [!' + kind + ']';
+
+    // .callout__title paragraphs render as bold so they read as a heading
+    // inside the admonition; everything else uses the normal block pipeline.
+    const parts = [];
+    for (const child of content.childNodes) {
+      if (child.nodeType !== Node.ELEMENT_NODE) {
+        const t = (child.nodeValue || '').trim();
+        if (t) parts.push(escText(t));
+        continue;
+      }
+      if (child.tagName === 'P' && child.classList.contains('callout__title')) {
+        const t = inlineOf(child).trim();
+        if (t) parts.push('**' + t + '**');
+      } else {
+        const md = blockOf(child, ctx);
+        if (md && md.trim()) parts.push(md);
+      }
+    }
+
+    const body = parts.join('\n\n').trim();
+    if (!body) return '> [!' + kind + ']';
+    const lines = body.split('\n').map((l) => (l ? '> ' + l : '>'));
+    return '> [!' + kind + ']\n' + lines.join('\n');
+  };
+
+  // ---- Status row in the doc header ---------------------------------------
+  const statusRowOf = (ul) => {
+    const labels = [];
+    for (const li of ul.querySelectorAll('li')) {
+      const txt = (li.textContent || '').trim();
+      if (txt) labels.push('`[' + txt.toUpperCase() + ']`');
+    }
+    return labels.join(' ');
+  };
+
+  // ---- Top-level entry point -----------------------------------------------
+  const buildMarkdown = () => {
+    const main = document.getElementById('main');
+    if (!main) return '';
+
+    // Walk children of <main> in order; each section becomes its own block.
+    const parts = [];
+    for (const child of main.children) {
+      if (shouldSkip(child)) continue;
+      const md = blockOf(child, { listDepth: 0 });
+      if (md && md.trim()) parts.push(md);
+    }
+
+    // Compose with single blank lines between blocks; collapse runs of blank
+    // lines so the output stays tight.
+    let out = parts.join('\n\n');
+    out = out.replace(/\n{3,}/g, '\n\n').trim();
+
+    const header =
+      '<!-- TradeVerse PRD — exported as Markdown ' + new Date().toISOString() +
+      ' -->\n\n';
+    return header + out + '\n';
+  };
+
+  const exportMarkdown = () => {
+    if (typeof TVPersistence !== 'undefined' && TVPersistence) {
+      try { TVPersistence.saveNow(); } catch { /* noop */ }
+    }
+    const md = buildMarkdown();
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    TVExport.triggerDownload(blob, 'tradeverse-prd-' + TVExport.today() + '.md');
+  };
+
+  TVExport.register('markdown', exportMarkdown);
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Unload guard: flush + warn if data is at risk (Phase 5.4)                  */
 /* -------------------------------------------------------------------------- */
 (function initUnloadGuard() {
