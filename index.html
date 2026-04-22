@@ -283,6 +283,224 @@
         </div>
       </section>
 
+      <!-- =========================================================
+           6. Hero Offerings
+           ========================================================= -->
+      <section id="sec-6-hero-offerings" aria-labelledby="h-6">
+        <h2 id="h-6">6. Hero Offerings</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 3rem">#</th>
+                <th scope="col">Hero</th>
+                <th scope="col">What it is</th>
+                <th scope="col">Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">H1</span></th>
+                <td><strong>Daily Chart Challenge</strong></td>
+                <td>
+                  5–10 system-generated visual questions per day, derived from
+                  yesterday's NSE/BSE data. Patterns, charts, S/R, fundamentals.
+                  Answered in 3–5 min. Scored on accuracy + speed.
+                </td>
+                <td>
+                  D30 retention engine + press moment ("I learned chart reading
+                  in 10 days") + regulation-safe core.
+                </td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="chip chip--brand">H2</span></th>
+                <td><strong>Friend Leagues (Skill-Based)</strong></td>
+                <td>
+                  3–20 friends compete weekly on the same generated challenges.
+                  Leaderboard by accuracy + speed. Zero money.
+                </td>
+                <td>
+                  The virality engine. WhatsApp-native, India-flavored, zero
+                  regulatory exposure.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           7. The Hook Loop (Eyal)
+           ========================================================= -->
+      <section id="sec-7-hook-loop" aria-labelledby="h-7">
+        <h2 id="h-7">7. The Hook Loop (Eyal)</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Stage</th>
+                <th scope="col">Specification</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">External Trigger</th>
+                <td>7:30 AM push — "Rohan just passed you in the League. Market opens in 1 hour."</td>
+              </tr>
+              <tr>
+                <th scope="row">Internal Trigger</th>
+                <td>Fear of falling behind peers; FOMO on market open.</td>
+              </tr>
+              <tr>
+                <th scope="row">Action</th>
+                <td>One-tap into "Today's Chart Challenge" (&lt;2s to first content).</td>
+              </tr>
+              <tr>
+                <th scope="row">Variable Reward</th>
+                <td>
+                  <strong>Tribe</strong> (friends overtaken/overtaking),
+                  <strong>Hunt</strong> (streak bonus, mystery XP multiplier),
+                  <strong>Self</strong> ("you got market direction right 4 days in a row").
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Investment</th>
+                <td>
+                  Answer today's challenge, add stocks to watchlist, invite friend,
+                  join a league — each raises sunk cost.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout--warn">
+          <span class="callout__icon" aria-hidden="true">i</span>
+          <div>
+            <p class="callout__title">Invariant</p>
+            <p>Rewards are always XP / badges / league position / streak freezes. <strong>Never cash or prediction-outcome tied.</strong></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           8. Content Taxonomy (The Moat)
+           ========================================================= -->
+      <section id="sec-8-content-taxonomy" aria-labelledby="h-8">
+        <h2 id="h-8">8. Content Taxonomy (The Moat)</h2>
+
+        <p>
+          Six problem classes, all <strong>system-generated</strong> from public market data.
+          Every trading day yields ~3,500 stocks × 6 classes = <strong>~21K fresh problem
+          seeds</strong>.
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 3rem">#</th>
+                <th scope="col">Class</th>
+                <th scope="col">Input</th>
+                <th scope="col">Example</th>
+                <th scope="col">Difficulty scales via</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">1</th>
+                <td>Pattern Recognition</td>
+                <td>OHLCV candlesticks</td>
+                <td><em>"Identify the pattern in this chart"</em></td>
+                <td>Noise, subtlety</td>
+              </tr>
+              <tr>
+                <th scope="row">2</th>
+                <td>Chart Matching</td>
+                <td>OHLCV, multiple stocks</td>
+                <td><em>"Which is Reliance from last Tuesday?"</em></td>
+                <td>Sector-similar distractors</td>
+              </tr>
+              <tr>
+                <th scope="row">3</th>
+                <td>Indicator Reasoning</td>
+                <td>RSI / MACD / Bollinger</td>
+                <td><em>"Rank these 4 by RSI"</em></td>
+                <td>Close numeric values</td>
+              </tr>
+              <tr>
+                <th scope="row">4</th>
+                <td>Fundamentals Decode</td>
+                <td>Quarterly filings</td>
+                <td><em>"Match these 4 P&amp;L statements to companies"</em></td>
+                <td>Similar-size companies</td>
+              </tr>
+              <tr>
+                <th scope="row">5</th>
+                <td>News → Market Logic</td>
+                <td>News + same-day price</td>
+                <td><em>"Which headline drove this 7% move?"</em></td>
+                <td>Same-day distractors</td>
+              </tr>
+              <tr>
+                <th scope="row">6</th>
+                <td>Microstructure <span class="badge badge--v3">V3</span></td>
+                <td>L2 order-book</td>
+                <td><em>"Is buy or sell pressure higher?"</em></td>
+                <td>Balanced books</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          V1 covers classes <strong>1–3</strong>. V2 adds <strong>4–5</strong>. V3 adds <strong>6</strong>.
+        </p>
+
+        <div class="callout callout--neutral">
+          <span class="callout__icon" aria-hidden="true">·</span>
+          <div>
+            <p>
+              Engine is system-generated for MVP. Hire 1 quant/analyst in V2 to tune
+              problem difficulty, catch edge cases (splits, circuit-breakers, corporate
+              actions).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           9. Feature Architecture — 9 Pillars
+           ========================================================= -->
+      <section id="sec-9-feature-architecture" aria-labelledby="h-9">
+        <h2 id="h-9">9. Feature Architecture — 9 Pillars</h2>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" style="width: 4rem">#</th>
+                <th scope="col">Pillar</th>
+                <th scope="col">Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row"><span class="chip chip--brand">P1</span></th><td><strong>Practice &amp; Learn</strong></td><td>Solo, visual-first skill-building</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P2</span></th><td><strong>Compete</strong></td><td>Multi-user rooms (private, public, prezone)</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P3</span></th><td><strong>Portfolios</strong></td><td>Strategy + Event virtual portfolios</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P4</span></th><td><strong>Social Trading Floor</strong></td><td>Voice rooms, screen-share, live streaming</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P5</span></th><td><strong>Quests &amp; Streaks</strong></td><td>Daily/Weekly/Monthly goals + widgets</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P6</span></th><td><strong>Events Marketplace</strong></td><td>Discovery surface</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P7</span></th><td><strong>Leaderboards &amp; Profile</strong></td><td>Friends/Institute/Global rankings + stats</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P8</span></th><td><strong>Clubs, Institutes, Ambassadors</strong></td><td>Account hierarchy + fest creation</td></tr>
+              <tr><th scope="row"><span class="chip chip--brand">P9</span></th><td><strong>Growth Loop</strong></td><td>Referrals, share cards, creator program</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
