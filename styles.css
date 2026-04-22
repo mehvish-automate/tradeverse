@@ -176,6 +176,147 @@ a:focus-visible {
   }
 }
 
+/* ---------- Layout (Phase 1.3) -------------------------------------------- */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--tv-toolbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--tv-sp-3);
+  padding: 0 var(--tv-sp-5);
+  background: var(--tv-ink);
+  color: var(--tv-text-on-dark);
+  border-bottom: 1px solid var(--tv-ink-line);
+  box-shadow: var(--tv-shadow-sm);
+}
+
+.toolbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tv-sp-2);
+  font-weight: var(--tv-fw-semi);
+  letter-spacing: 0.01em;
+}
+.toolbar__brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--tv-radius-sm);
+  background: linear-gradient(135deg, var(--tv-brand) 0%, var(--tv-accent) 100%);
+  display: inline-block;
+}
+.toolbar__title { font-size: var(--tv-fs-small); color: var(--tv-text-on-dark-muted); }
+.toolbar__title strong { color: var(--tv-text-on-dark); font-weight: var(--tv-fw-semi); }
+.toolbar__spacer { flex: 1 1 auto; }
+
+.toolbar__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tv-sp-2);
+}
+
+.toolbar__btn {
+  appearance: none;
+  border: 1px solid var(--tv-ink-line);
+  background: var(--tv-ink-2);
+  color: var(--tv-text-on-dark);
+  padding: var(--tv-sp-2) var(--tv-sp-3);
+  border-radius: var(--tv-radius-sm);
+  font-size: var(--tv-fs-small);
+  cursor: pointer;
+  transition: background var(--tv-dur-fast) var(--tv-ease),
+              border-color var(--tv-dur-fast) var(--tv-ease);
+}
+.toolbar__btn:hover { background: var(--tv-ink-3); border-color: #3a467a; }
+.toolbar__btn:focus-visible { outline: none; box-shadow: var(--tv-ring-focus); }
+
+.toolbar__nav-toggle {
+  display: none;
+  appearance: none;
+  background: transparent;
+  color: var(--tv-text-on-dark);
+  border: 1px solid var(--tv-ink-line);
+  padding: var(--tv-sp-2);
+  border-radius: var(--tv-radius-sm);
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Two-column layout */
+.layout {
+  display: grid;
+  grid-template-columns: var(--tv-rail-w) 1fr;
+  align-items: start;
+  min-height: calc(100dvh - var(--tv-toolbar-h));
+}
+
+.nav-rail {
+  position: sticky;
+  top: var(--tv-toolbar-h);
+  align-self: start;
+  height: calc(100dvh - var(--tv-toolbar-h));
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--tv-ink);
+  color: var(--tv-text-on-dark);
+  border-right: 1px solid var(--tv-ink-line);
+  padding: var(--tv-sp-5) var(--tv-sp-4);
+  scrollbar-width: thin;
+  scrollbar-color: var(--tv-ink-line) transparent;
+}
+.nav-rail::-webkit-scrollbar { width: 8px; }
+.nav-rail::-webkit-scrollbar-thumb {
+  background: var(--tv-ink-line);
+  border-radius: var(--tv-radius-pill);
+}
+
+.content {
+  width: 100%;
+  max-width: var(--tv-content-max);
+  margin: 0 auto;
+  padding: var(--tv-sp-10) var(--tv-content-pad) var(--tv-sp-16);
+  background: var(--tv-bg);
+}
+
+/* Responsive: collapse rail under toolbar */
+@media (max-width: 960px) {
+  .toolbar__nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+
+  .layout { grid-template-columns: 1fr; }
+
+  .nav-rail {
+    position: fixed;
+    top: var(--tv-toolbar-h);
+    left: 0;
+    width: min(320px, 86vw);
+    height: calc(100dvh - var(--tv-toolbar-h));
+    transform: translateX(-100%);
+    transition: transform var(--tv-dur-med) var(--tv-ease);
+    box-shadow: var(--tv-shadow-lg);
+    z-index: 40;
+  }
+  .nav-rail[data-open="true"] { transform: translateX(0); }
+
+  .nav-scrim {
+    position: fixed;
+    inset: var(--tv-toolbar-h) 0 0 0;
+    background: rgba(11, 16, 32, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--tv-dur-med) var(--tv-ease);
+    z-index: 35;
+  }
+  .nav-scrim[data-open="true"] { opacity: 1; pointer-events: auto; }
+
+  .content { padding: var(--tv-sp-6) var(--tv-sp-5) var(--tv-sp-12); }
+}
+
+@media (max-width: 520px) {
+  .toolbar { padding: 0 var(--tv-sp-3); gap: var(--tv-sp-2); }
+  .toolbar__title { display: none; }
+}
+
 /* ---------- Print reset ---------------------------------------------------- */
 @media print {
   :root {

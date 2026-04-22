@@ -27,11 +27,36 @@
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="toolbar" role="banner">
-    <!-- Toolbar controls land in Phase 1.3 / Phase 4 -->
+    <button
+      class="toolbar__nav-toggle"
+      type="button"
+      aria-label="Toggle navigation"
+      aria-controls="nav-rail"
+      aria-expanded="false"
+      data-nav-toggle
+    >
+      <span aria-hidden="true">☰</span>
+    </button>
+
+    <span class="toolbar__brand">
+      <span class="toolbar__brand-mark" aria-hidden="true"></span>
+      TradeVerse
+    </span>
+    <span class="toolbar__title">
+      <strong>PRD</strong> · Editable Document
+    </span>
+
+    <span class="toolbar__spacer"></span>
+
+    <div class="toolbar__actions">
+      <!-- Edit/View toggle, Save indicator, Export menu land in Phases 4–6 -->
+    </div>
   </header>
 
+  <div class="nav-scrim" data-nav-scrim aria-hidden="true"></div>
+
   <div class="layout">
-    <aside class="nav-rail" aria-label="Document navigation">
+    <aside id="nav-rail" class="nav-rail" aria-label="Document navigation">
       <!-- TOC lands in Phase 3.1 -->
     </aside>
 
