@@ -107,6 +107,37 @@
         <span class="toolbar__btn-label" data-headings-label>Unlock structure</span>
       </button>
 
+      <div class="toolbar__menu" data-export-menu>
+        <button
+          type="button"
+          class="toolbar__btn"
+          data-export-trigger
+          aria-haspopup="menu"
+          aria-expanded="false"
+          title="Download or print this document"
+        >
+          <span class="toolbar__btn-icon" aria-hidden="true">↓</span>
+          <span class="toolbar__btn-label">Export</span>
+          <span class="toolbar__btn-caret" aria-hidden="true">▾</span>
+        </button>
+        <ul class="toolbar__menu-list" role="menu" data-export-menu-list hidden>
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              class="toolbar__menu-item"
+              data-export-action="html"
+            >
+              <span class="toolbar__menu-icon" aria-hidden="true">⤓</span>
+              <span class="toolbar__menu-label">
+                <strong>Standalone HTML</strong>
+                <span class="toolbar__menu-sub">Single .html file — open offline</span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
       <button
         type="button"
         class="toolbar__btn toolbar__btn--primary"

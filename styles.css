@@ -231,6 +231,82 @@ a:focus-visible {
 .toolbar__btn:hover { background: var(--tv-ink-3); border-color: #3a467a; }
 .toolbar__btn:focus-visible { outline: none; box-shadow: var(--tv-ring-focus); }
 
+.toolbar__menu {
+  position: relative;
+  display: inline-flex;
+}
+.toolbar__btn-caret {
+  font-size: 0.65em;
+  margin-left: 0.1em;
+  transition: transform var(--tv-dur-fast) var(--tv-ease);
+}
+.toolbar__menu [aria-expanded="true"] .toolbar__btn-caret {
+  transform: rotate(180deg);
+}
+
+.toolbar__menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 280px;
+  margin: 0;
+  padding: var(--tv-sp-2);
+  list-style: none;
+  background: var(--tv-surface);
+  color: var(--tv-text);
+  border: 1px solid var(--tv-border);
+  border-radius: var(--tv-radius-md);
+  box-shadow: var(--tv-shadow-lg);
+  z-index: 60;
+  animation: tv-menu-in 120ms var(--tv-ease);
+}
+@keyframes tv-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toolbar__menu-item {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: var(--tv-sp-3);
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  padding: var(--tv-sp-3);
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--tv-radius-sm);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.toolbar__menu-item:hover,
+.toolbar__menu-item:focus-visible {
+  background: var(--tv-brand-soft);
+  outline: none;
+}
+.toolbar__menu-item:focus-visible {
+  border-color: var(--tv-brand);
+}
+.toolbar__menu-icon {
+  font-size: 1.1em;
+  color: var(--tv-brand-strong);
+  line-height: 1.2;
+}
+.toolbar__menu-label {
+  display: grid;
+  gap: 2px;
+  line-height: var(--tv-lh-snug);
+}
+.toolbar__menu-sub {
+  font-size: var(--tv-fs-micro);
+  color: var(--tv-text-muted);
+}
+
+@media (max-width: 520px) {
+  .toolbar__menu-list { right: -8px; min-width: 240px; }
+}
+
 .toolbar__btn--danger {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.45);

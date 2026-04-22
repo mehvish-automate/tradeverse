@@ -626,6 +626,262 @@ const TVPersistence = (function initPersistence() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Export menu dropdown + HTML export (Phase 6.1)                             */
+/* -------------------------------------------------------------------------- */
+const TVExport = (function initExport() {
+  const trigger = document.querySelector('[data-export-trigger]');
+  const list = document.querySelector('[data-export-menu-list]');
+  const wrap = document.querySelector('[data-export-menu]');
+  if (!trigger || !list || !wrap) return null;
+
+  // ---- Dropdown plumbing ---------------------------------------------------
+  const setOpen = (open) => {
+    trigger.setAttribute('aria-expanded', String(open));
+    list.hidden = !open;
+    if (open) {
+      // Focus first menu item for keyboard users.
+      const first = list.querySelector('[role="menuitem"]:not([hidden])');
+      if (first) first.focus({ preventScroll: true });
+    }
+  };
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = trigger.getAttribute('aria-expanded') !== 'true';
+    setOpen(open);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && trigger.getAttribute('aria-expanded') === 'true') {
+      setOpen(false);
+      trigger.focus();
+    }
+  });
+
+  // Arrow-key navigation within the open menu.
+  list.addEventListener('keydown', (e) => {
+    const items = Array.from(list.querySelectorAll('[role="menuitem"]:not([hidden])'));
+    const idx = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[(idx + 1 + items.length) % items.length];
+      if (next) next.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = items[(idx - 1 + items.length) % items.length];
+      if (next) next.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      items[0] && items[0].focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      items[items.length - 1] && items[items.length - 1].focus();
+    }
+  });
+
+  // Wire menu items to registered actions; subsequent parts (6.2/6.3) push
+  // their own actions into this map.
+  const actions = Object.create(null);
+  list.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-export-action]');
+    if (!item) return;
+    const name = item.dataset.exportAction;
+    const fn = actions[name];
+    if (typeof fn === 'function') {
+      setOpen(false);
+      Promise.resolve()
+        .then(() => fn())
+        .catch((err) => {
+          console.error('Export action failed:', err);
+          window.alert('Export failed: ' + (err.message || err));
+        });
+    }
+  });
+
+  // ---- Helpers shared across exporters -------------------------------------
+  const today = () => {
+    const d = new Date();
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+            String(d.getDate()).padStart(2, '0')].join('-');
+  };
+
+  const triggerDownload = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
+  // ---- Cleanup: strip JS-injected dynamic state from a cloned document ----
+  const cleanForExport = (doc) => {
+    // 1. Remove dynamically-injected DOM.
+    doc.querySelectorAll('.anchor-link').forEach((n) => n.remove());
+    doc.querySelectorAll('.lock-warning').forEach((n) => n.remove());
+    doc.querySelectorAll('.toc__list').forEach((ol) => { ol.innerHTML = ''; });
+    doc.querySelectorAll('.toc__empty').forEach((p) => { p.hidden = true; });
+
+    // 2. Strip dynamic attributes that JS will re-add.
+    doc.querySelectorAll('[contenteditable]').forEach((el) => {
+      el.removeAttribute('contenteditable');
+      el.removeAttribute('spellcheck');
+    });
+    doc.querySelectorAll('[data-tv-id]').forEach((el) => el.removeAttribute('data-tv-id'));
+    doc.querySelectorAll('[data-empty]').forEach((el) => el.removeAttribute('data-empty'));
+    doc.querySelectorAll('.is-editable').forEach((el) => el.classList.remove('is-editable'));
+
+    // 3. Reset body state.
+    const body = doc.querySelector('body');
+    if (body) {
+      body.removeAttribute('data-edit-mode');
+      body.removeAttribute('data-headings-unlocked');
+    }
+
+    // 4. Reset toolbar UI to its initial-paint state.
+    const initialHidden = [
+      '[data-save-status]', '[data-edit-mode-pill]',
+      '[data-reset-button]', '[data-headings-toggle]', '[data-back-to-top]',
+    ];
+    for (const sel of initialHidden) {
+      const el = doc.querySelector(sel);
+      if (el) el.hidden = true;
+    }
+
+    const editBtn = doc.querySelector('[data-edit-toggle]');
+    if (editBtn) editBtn.setAttribute('aria-pressed', 'false');
+    const editLabel = doc.querySelector('[data-edit-label]');
+    if (editLabel) editLabel.textContent = 'Edit';
+    const iconView = doc.querySelector('[data-edit-icon-view]');
+    if (iconView) iconView.hidden = false;
+    const iconDone = doc.querySelector('[data-edit-icon-done]');
+    if (iconDone) iconDone.hidden = true;
+
+    const exportTrigger = doc.querySelector('[data-export-trigger]');
+    if (exportTrigger) exportTrigger.setAttribute('aria-expanded', 'false');
+    const exportList = doc.querySelector('[data-export-menu-list]');
+    if (exportList) exportList.hidden = true;
+
+    const progress = doc.querySelector('[data-reading-progress-bar]');
+    if (progress) progress.style.width = '';
+    const progressWrap = doc.querySelector('[data-reading-progress]');
+    if (progressWrap) progressWrap.setAttribute('aria-valuenow', '0');
+
+    return doc;
+  };
+
+  // ---- Inline current page CSS into the cloned document --------------------
+  const inlineCSS = (doc) => {
+    const css = [];
+    for (const sheet of document.styleSheets) {
+      // Skip cross-origin sheets (Google Fonts) — we'll keep their <link>
+      // so connected machines still load the font, and they'd throw on
+      // cssRules access anyway.
+      if (sheet.href && /fonts\.googleapis\.com/.test(sheet.href)) continue;
+      let rules;
+      try { rules = sheet.cssRules; }
+      catch { continue; }
+      if (!rules) continue;
+      for (const rule of rules) css.push(rule.cssText);
+    }
+    if (!css.length) return;
+
+    const link = doc.querySelector('link[rel="stylesheet"][href$="styles.css"]');
+    if (!link) return;
+    const style = doc.createElement('style');
+    style.textContent = css.join('\n');
+    link.replaceWith(style);
+  };
+
+  // ---- Inline app.js source where possible ---------------------------------
+  // Cached so repeated exports don't re-fetch.
+  let scriptSourcePromise = null;
+  const getScriptSource = () => {
+    if (scriptSourcePromise) return scriptSourcePromise;
+    const src = document.querySelector('script[src$="app.js"]');
+    if (!src) {
+      scriptSourcePromise = Promise.resolve(null);
+      return scriptSourcePromise;
+    }
+    scriptSourcePromise = fetch(src.getAttribute('src'))
+      .then((r) => (r.ok ? r.text() : null))
+      .catch(() => null);
+    return scriptSourcePromise;
+  };
+
+  const inlineJS = async (doc) => {
+    const source = await getScriptSource();
+    const script = doc.querySelector('script[src$="app.js"]');
+    if (!script) return { inlined: false };
+    if (!source) return { inlined: false };
+    const inline = doc.createElement('script');
+    inline.defer = true;
+    inline.textContent = source;
+    script.replaceWith(inline);
+    return { inlined: true };
+  };
+
+  // ---- Public: build + download the standalone HTML ------------------------
+  const exportHTML = async () => {
+    // Flush any pending edits so the export reflects what's on screen.
+    if (TVPersistence) {
+      try { TVPersistence.saveNow(); } catch { /* noop */ }
+    }
+
+    const doc = document.documentElement.cloneNode(true);
+    // Wrap in a transient document for querying convenience.
+    const docWrap = { querySelector: (s) => doc.querySelector(s),
+                      querySelectorAll: (s) => doc.querySelectorAll(s),
+                      createElement: (t) => document.createElement(t) };
+    cleanForExport(docWrap);
+    inlineCSS(docWrap);
+    const jsResult = await inlineJS(docWrap);
+
+    // Mark the export with a comment header so recipients know what they have.
+    const header =
+      '<!--\n' +
+      '  TradeVerse PRD — exported ' + new Date().toISOString() + '\n' +
+      '  Edit in browser. Saves to your local browser storage.\n' +
+      (jsResult.inlined
+        ? '  Self-contained: CSS + JS inlined.\n'
+        : '  Note: app.js could not be inlined (likely opened from file://).\n' +
+          '        Place the original app.js next to this file for full editing.\n') +
+      '-->\n';
+
+    const html = '<!DOCTYPE html>\n' + header + doc.outerHTML;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    triggerDownload(blob, 'tradeverse-prd-' + today() + '.html');
+
+    if (!jsResult.inlined) {
+      window.alert(
+        'Export saved, but app.js could not be inlined (this happens when ' +
+        'the page is opened directly from disk in some browsers). The exported ' +
+        'HTML still renders correctly — for full edit/save behavior, keep app.js ' +
+        'in the same folder as the exported file, or serve over http(s).'
+      );
+    }
+  };
+
+  actions.html = exportHTML;
+
+  return {
+    register: (name, fn) => { actions[name] = fn; },
+    closeMenu: () => setOpen(false),
+    today,
+    triggerDownload,
+  };
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Unload guard: flush + warn if data is at risk (Phase 5.4)                  */
 /* -------------------------------------------------------------------------- */
 (function initUnloadGuard() {
