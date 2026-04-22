@@ -63,6 +63,17 @@
 
     <div class="toolbar__actions">
       <span
+        class="toolbar__status"
+        data-save-status
+        data-state="idle"
+        aria-live="polite"
+        hidden
+      >
+        <span class="toolbar__status-dot" aria-hidden="true"></span>
+        <span data-save-status-text>Up to date</span>
+      </span>
+
+      <span
         class="toolbar__pill"
         data-edit-mode-pill
         hidden

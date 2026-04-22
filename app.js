@@ -625,6 +625,114 @@ const TVPersistence = (function initPersistence() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* "Last saved" status indicator (Phase 5.2)                                  */
+/* -------------------------------------------------------------------------- */
+(function initSaveStatus() {
+  if (!TVPersistence || !TVEditor) return;
+  const el = document.querySelector('[data-save-status]');
+  const text = document.querySelector('[data-save-status-text]');
+  if (!el || !text) return;
+
+  const formatRelative = (ts) => {
+    if (!ts) return null;
+    const diff = Math.max(0, Date.now() - ts);
+    const sec = Math.floor(diff / 1000);
+    if (sec < 5)        return 'just now';
+    if (sec < 60)       return sec + 's ago';
+    const min = Math.floor(sec / 60);
+    if (min < 60)       return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24)        return hr + 'h ago';
+    const day = Math.floor(hr / 24);
+    return day + 'd ago';
+  };
+
+  let mode = 'idle'; // idle | dirty | saving | saved | error
+  let savedAt = TVPersistence.lastSavedAt();
+  let liveTimer = null;
+
+  const stopLiveTimer = () => {
+    if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  };
+
+  const render = () => {
+    const editing = TVEditor.isEditing();
+    const stored = TVPersistence.hasStoredEdits();
+
+    // Visibility: show whenever there's something meaningful to say.
+    const show = editing || stored || mode === 'error';
+    el.hidden = !show;
+    if (!show) return;
+
+    let label;
+    let state;
+    switch (mode) {
+      case 'dirty':
+        label = 'Unsaved changes…';
+        state = 'dirty';
+        break;
+      case 'saving':
+        label = 'Saving…';
+        state = 'saving';
+        break;
+      case 'error':
+        label = 'Save failed — try again';
+        state = 'error';
+        break;
+      case 'saved':
+        if (stored && savedAt) {
+          label = 'Saved · ' + formatRelative(savedAt);
+        } else {
+          label = 'Up to date';
+        }
+        state = 'saved';
+        break;
+      case 'idle':
+      default:
+        if (stored && savedAt) {
+          label = 'Saved · ' + formatRelative(savedAt);
+          state = 'saved';
+        } else {
+          label = 'Up to date';
+          state = 'saved';
+        }
+        break;
+    }
+    text.textContent = label;
+    el.dataset.state = state;
+  };
+
+  const startLiveTimer = () => {
+    stopLiveTimer();
+    if (!savedAt) return;
+    // Update relative time every 5s so 'just now' → 'Xs ago' looks alive.
+    liveTimer = setInterval(render, 5000);
+  };
+
+  TVPersistence.onChange((event) => {
+    if (event.type === 'dirty') {
+      mode = 'dirty';
+      stopLiveTimer();
+    } else if (event.type === 'saved') {
+      savedAt = event.savedAt;
+      mode = event.cleared ? 'idle' : 'saved';
+      if (event.cleared) stopLiveTimer();
+      else startLiveTimer();
+    } else if (event.type === 'error') {
+      mode = 'error';
+      stopLiveTimer();
+    }
+    render();
+  });
+
+  TVEditor.onChange(() => render());
+
+  // Initial paint and live timer if we restored prior edits.
+  render();
+  if (savedAt) startLiveTimer();
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Heading anchors + copy link (Phase 3.2)                                    */
 /* -------------------------------------------------------------------------- */
 (function initHeadingAnchors() {
