@@ -57,7 +57,12 @@
 
   <div class="layout">
     <aside id="nav-rail" class="nav-rail" aria-label="Document navigation">
-      <!-- TOC lands in Phase 3.1 -->
+      <p class="nav-rail__eyebrow">Contents</p>
+      <nav class="toc" aria-label="Table of contents">
+        <ol class="toc__list" data-toc-list>
+          <!-- Auto-populated from <main> H2 sections by app.js -->
+        </ol>
+      </nav>
     </aside>
 
     <main id="main" class="content" role="main">

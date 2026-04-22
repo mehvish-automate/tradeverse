@@ -587,6 +587,70 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- TOC (Part 3.1) ------------------------------------------------ */
+.nav-rail__eyebrow {
+  font-size: var(--tv-fs-micro);
+  font-weight: var(--tv-fw-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--tv-text-on-dark-muted);
+  margin: 0 0 var(--tv-sp-3);
+  padding: 0 var(--tv-sp-2);
+}
+
+.toc { font-size: var(--tv-fs-small); }
+
+.toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: toc;
+}
+
+.toc__item { margin: 0; }
+
+.toc__link {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: var(--tv-sp-2);
+  align-items: baseline;
+  padding: var(--tv-sp-2) var(--tv-sp-2);
+  border-radius: var(--tv-radius-sm);
+  color: var(--tv-text-on-dark-muted);
+  text-decoration: none;
+  line-height: var(--tv-lh-snug);
+  transition: background var(--tv-dur-fast) var(--tv-ease),
+              color var(--tv-dur-fast) var(--tv-ease);
+  border-left: 2px solid transparent;
+}
+.toc__link:hover {
+  color: var(--tv-text-on-dark);
+  background: var(--tv-ink-2);
+  text-decoration: none;
+}
+.toc__link:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+.toc__num {
+  font-family: var(--tv-font-mono);
+  font-size: var(--tv-fs-micro);
+  color: var(--tv-text-faint);
+  font-weight: var(--tv-fw-semi);
+  text-align: right;
+}
+
+.toc__link[aria-current="true"],
+.toc__link[data-active="true"] {
+  background: var(--tv-ink-3);
+  color: var(--tv-text-on-dark);
+  border-left-color: var(--tv-brand);
+}
+.toc__link[aria-current="true"] .toc__num,
+.toc__link[data-active="true"] .toc__num {
+  color: var(--tv-brand);
+}
+
 /* ---------- Checklist (Part 2.8) ------------------------------------------ */
 .content .checklist {
   list-style: none;
