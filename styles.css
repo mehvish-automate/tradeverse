@@ -587,6 +587,37 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Document header (Part 2.1) ------------------------------------ */
+.doc-header { margin-bottom: var(--tv-sp-10); }
+
+.doc-eyebrow {
+  font-size: var(--tv-fs-micro);
+  font-weight: var(--tv-fw-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tv-brand-strong);
+  margin: 0 0 var(--tv-sp-2);
+}
+
+.doc-tagline {
+  font-size: 1.125rem;
+  color: var(--tv-text-muted);
+  line-height: var(--tv-lh-snug);
+  margin: 0 0 var(--tv-sp-5);
+  max-width: 60ch;
+}
+
+.doc-status {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--tv-sp-6);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tv-sp-2);
+}
+
+.doc-meta { max-width: 560px; }
+
 /* ---------- Print reset ---------------------------------------------------- */
 @media print {
   :root {
