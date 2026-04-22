@@ -344,6 +344,87 @@ const TVEditor = (function initEditMode() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Heading lock (Phase 4.5)                                                   */
+/* -------------------------------------------------------------------------- */
+(function initHeadingLock() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  const btn = document.querySelector('[data-headings-toggle]');
+  const labelEl = document.querySelector('[data-headings-label]');
+  const iconLocked = document.querySelector('[data-headings-icon-locked]');
+  const iconUnlocked = document.querySelector('[data-headings-icon-unlocked]');
+  if (!main || !btn) return;
+
+  // Default: locked. The toolbar button only shows in edit mode.
+  let unlocked = false;
+
+  const headings = Array.from(main.querySelectorAll('h1[id], h2[id], h3[id], h4[id]'));
+  for (const h of headings) {
+    h.classList.add('is-editable');
+    if (!h.hasAttribute('data-placeholder')) {
+      h.setAttribute('data-placeholder', 'Heading');
+    }
+  }
+
+  // Inject the unlock warning banner once, at the very top of <main>.
+  const warning = document.createElement('div');
+  warning.className = 'lock-warning';
+  warning.setAttribute('role', 'status');
+  warning.innerHTML =
+    '<strong>⚠ Structure unlocked.</strong> ' +
+    'Editing heading text changes the TOC label, but section ids stay stable so deep-links keep working. ' +
+    'Click <kbd>🔓 Lock structure</kbd> in the toolbar to relock — or just leave edit mode and it relocks for you.';
+  main.insertBefore(warning, main.firstElementChild);
+
+  const supportsPlaintextOnly = (() => {
+    const probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+  const editableValue = supportsPlaintextOnly ? 'plaintext-only' : 'true';
+
+  const apply = () => {
+    const editing = TVEditor.isEditing();
+    const live = editing && unlocked;
+
+    document.body.dataset.headingsUnlocked = unlocked ? 'true' : 'false';
+    btn.hidden = !editing;
+    btn.setAttribute('aria-pressed', String(unlocked));
+    if (iconLocked) iconLocked.hidden = unlocked;
+    if (iconUnlocked) iconUnlocked.hidden = !unlocked;
+    if (labelEl) labelEl.textContent = unlocked ? 'Lock structure' : 'Unlock structure';
+    btn.title = unlocked
+      ? 'Headings are unlocked. Click to relock.'
+      : 'Headings are locked. Click to unlock — note this can break the TOC label rendering until you exit edit mode (deep-links stay intact).';
+
+    for (const h of headings) {
+      if (live) {
+        h.setAttribute('contenteditable', editableValue);
+        h.setAttribute('spellcheck', 'true');
+      } else {
+        h.removeAttribute('contenteditable');
+        h.removeAttribute('spellcheck');
+        if (document.activeElement === h) h.blur();
+      }
+    }
+  };
+
+  btn.addEventListener('click', () => {
+    unlocked = !unlocked;
+    apply();
+  });
+
+  // When edit mode flips OFF, snap headings back to locked so the next entry
+  // starts safe.
+  TVEditor.onChange((on) => {
+    if (!on) unlocked = false;
+    apply();
+  });
+
+  apply();
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Mobile nav toggle (Phase 1.3)                                              */
 /* -------------------------------------------------------------------------- */
 (function initNavToggle() {
@@ -397,6 +478,7 @@ const TVEditor = (function initEditMode() {
     a.className = 'anchor-link';
     a.href = '#' + h.id;
     a.setAttribute('aria-label', 'Copy link to ' + (h.textContent || '').trim());
+    a.setAttribute('contenteditable', 'false'); // Survive heading-unlock (Phase 4.5)
     a.textContent = '#';
     h.appendChild(a);
   }

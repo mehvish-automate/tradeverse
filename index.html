@@ -74,6 +74,19 @@
 
       <button
         type="button"
+        class="toolbar__btn"
+        data-headings-toggle
+        hidden
+        aria-pressed="false"
+        title="Headings are locked. Click to unlock — note this can break the TOC and deep-links."
+      >
+        <span class="toolbar__btn-icon" aria-hidden="true" data-headings-icon-locked>🔒</span>
+        <span class="toolbar__btn-icon" aria-hidden="true" data-headings-icon-unlocked hidden>🔓</span>
+        <span class="toolbar__btn-label" data-headings-label>Unlock structure</span>
+      </button>
+
+      <button
+        type="button"
         class="toolbar__btn toolbar__btn--primary"
         data-edit-toggle
         aria-pressed="false"

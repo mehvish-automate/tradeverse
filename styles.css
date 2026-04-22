@@ -656,6 +656,64 @@ body[data-edit-mode="true"] .content :is(td, th).is-editable:focus {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Heading lock (Part 4.5) --------------------------------------- */
+/* In edit mode, headings hint at their locked state and refuse the caret. */
+body[data-edit-mode="true"] .content :is(h1, h2, h3, h4) {
+  cursor: not-allowed;
+}
+body[data-edit-mode="true"] .content :is(h1, h2, h3, h4)::after {
+  content: " 🔒";
+  font-size: 0.7em;
+  color: var(--tv-text-faint);
+  margin-left: 0.3em;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity var(--tv-dur-fast) var(--tv-ease);
+}
+body[data-edit-mode="true"] .content :is(h1, h2, h3, h4):hover::after {
+  opacity: 1;
+}
+
+/* When the user explicitly unlocks structure, headings behave like the
+   other editable blocks (Phase 4.3 affordances apply because the JS adds
+   .is-editable). */
+body[data-edit-mode="true"][data-headings-unlocked="true"] .content :is(h1, h2, h3, h4) {
+  cursor: text;
+}
+body[data-edit-mode="true"][data-headings-unlocked="true"] .content :is(h1, h2, h3, h4)::after {
+  content: " 🔓";
+}
+
+/* Anchor links inside headings remain non-editable and visible. */
+body[data-edit-mode="true"] .content .anchor-link {
+  user-select: none;
+  caret-color: transparent;
+}
+
+/* When locked, suppress the .is-editable hover tint on headings so they
+   visually match their not-allowed cursor. */
+body[data-edit-mode="true"]:not([data-headings-unlocked="true"]) .content :is(h1, h2, h3, h4):hover {
+  background: transparent;
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+/* Loud warning banner injected by JS at top of <main>. */
+.lock-warning {
+  display: none;
+  margin: 0 0 var(--tv-sp-6);
+  padding: var(--tv-sp-3) var(--tv-sp-4);
+  background: var(--tv-status-locked-bg);
+  border: 1px solid color-mix(in srgb, var(--tv-status-locked-fg) 25%, transparent);
+  border-left: 3px solid var(--tv-status-locked-fg);
+  border-radius: var(--tv-radius-md);
+  color: var(--tv-status-locked-fg);
+  font-size: var(--tv-fs-small);
+  line-height: var(--tv-lh-snug);
+}
+body[data-edit-mode="true"][data-headings-unlocked="true"] .lock-warning {
+  display: block;
+}
+
 /* ---------- Editing affordances (Part 4.3) -------------------------------- */
 /* Affordances only render in edit mode. View mode keeps the doc pristine. */
 
