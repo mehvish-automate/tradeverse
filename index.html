@@ -26,6 +26,19 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
+  <div
+    class="reading-progress"
+    role="progressbar"
+    aria-label="Reading progress"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow="0"
+    data-reading-progress
+    aria-hidden="true"
+  >
+    <div class="reading-progress__bar" data-reading-progress-bar></div>
+  </div>
+
   <header class="toolbar" role="banner">
     <button
       class="toolbar__nav-toggle"
@@ -1481,6 +1494,17 @@
 
     </main>
   </div>
+
+  <button
+    type="button"
+    class="back-to-top"
+    data-back-to-top
+    aria-label="Back to top"
+    hidden
+  >
+    <span class="back-to-top__arrow" aria-hidden="true">↑</span>
+    <span class="back-to-top__label">Top</span>
+  </button>
 
   <script src="app.js" defer></script>
 </body>

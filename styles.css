@@ -587,6 +587,77 @@ a:focus-visible {
 .chip--accent  { background: #fff5d6; color: #6a4900; border-color: #f0d68a; }
 .chip--ghost   { background: transparent; }
 
+/* ---------- Reading progress + back-to-top (Part 3.4) --------------------- */
+.reading-progress {
+  position: fixed;
+  top: var(--tv-toolbar-h);
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  z-index: 49;
+  pointer-events: none;
+}
+.reading-progress__bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--tv-brand) 0%, var(--tv-accent) 100%);
+  transform-origin: left center;
+  transition: width 80ms linear;
+  box-shadow: 0 1px 6px rgba(79, 124, 255, 0.45);
+}
+
+.back-to-top {
+  position: fixed;
+  right: clamp(var(--tv-sp-4), 3vw, var(--tv-sp-8));
+  bottom: clamp(var(--tv-sp-4), 4vh, var(--tv-sp-8));
+  z-index: 45;
+  appearance: none;
+  border: 1px solid var(--tv-border-strong);
+  background: var(--tv-surface);
+  color: var(--tv-text);
+  padding: var(--tv-sp-2) var(--tv-sp-3);
+  border-radius: var(--tv-radius-pill);
+  box-shadow: var(--tv-shadow-md);
+  font-size: var(--tv-fs-small);
+  font-weight: var(--tv-fw-semi);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--tv-dur-med) var(--tv-ease),
+              transform var(--tv-dur-med) var(--tv-ease),
+              background var(--tv-dur-fast) var(--tv-ease),
+              border-color var(--tv-dur-fast) var(--tv-ease);
+}
+.back-to-top[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+.back-to-top:hover {
+  background: var(--tv-brand-soft);
+  border-color: var(--tv-brand);
+  color: var(--tv-brand-strong);
+}
+.back-to-top:focus-visible { outline: none; box-shadow: var(--tv-ring-focus); }
+.back-to-top__arrow { font-size: 1em; line-height: 1; }
+
+@media (max-width: 520px) {
+  .back-to-top__label { display: none; }
+  .back-to-top {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media print {
+  .reading-progress, .back-to-top { display: none !important; }
+}
+
 /* ---------- Heading anchors (Part 3.2) ------------------------------------ */
 .content :is(h2, h3) {
   position: relative;

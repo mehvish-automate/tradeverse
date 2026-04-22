@@ -312,3 +312,65 @@
     }
   });
 })();
+
+/* -------------------------------------------------------------------------- */
+/* Reading progress bar + back-to-top (Phase 3.4)                             */
+/* -------------------------------------------------------------------------- */
+(function initReadingProgress() {
+  const wrap = document.querySelector('[data-reading-progress]');
+  const bar = document.querySelector('[data-reading-progress-bar]');
+  const btt = document.querySelector('[data-back-to-top]');
+  if (!wrap || !bar || !btt) return;
+
+  const SHOW_AFTER = 600; // px scrolled before back-to-top appears
+
+  let ticking = false;
+
+  const update = () => {
+    ticking = false;
+
+    const doc = document.documentElement;
+    const scrollTop = window.scrollY || doc.scrollTop || 0;
+    const max = (doc.scrollHeight - window.innerHeight) || 1;
+    const pct = Math.max(0, Math.min(100, (scrollTop / max) * 100));
+
+    bar.style.width = pct.toFixed(2) + '%';
+    wrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+
+    const shouldShow = scrollTop > SHOW_AFTER;
+    if (shouldShow) {
+      btt.hidden = false;
+      // Force reflow so the visibility transition fires the first time.
+      btt.offsetHeight; // eslint-disable-line no-unused-expressions
+      btt.dataset.visible = 'true';
+    } else {
+      btt.dataset.visible = 'false';
+      // Hide from AT once the fade-out finishes.
+      setTimeout(() => {
+        if (btt.dataset.visible !== 'true') btt.hidden = true;
+      }, 220);
+    }
+  };
+
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+
+  btt.addEventListener('click', () => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    // Move focus back to the document start for AT users.
+    const main = document.getElementById('main');
+    if (main) {
+      main.setAttribute('tabindex', '-1');
+      main.focus({ preventScroll: true });
+    }
+  });
+
+  update();
+})();
