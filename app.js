@@ -465,6 +465,166 @@ const TVEditor = (function initEditMode() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Persistence: auto-save to localStorage (Phase 5.1)                         */
+/*   Runs after Phase 4 modules tag .is-editable, BEFORE Phase 3 TOC build    */
+/*   so restored heading text appears in the TOC on first paint.              */
+/* -------------------------------------------------------------------------- */
+const TVPersistence = (function initPersistence() {
+  if (!TVEditor) return null;
+  const main = document.getElementById('main');
+  if (!main) return null;
+
+  const STORAGE_KEY = 'tradeverse-prd-edits-v1';
+  const SAVE_DEBOUNCE_MS = 600;
+  const SCHEMA_VERSION = 1;
+
+  // Stable path for any element, anchored to its nearest ancestor with an id.
+  // Survives reflows because we count siblings of the same tag at each step.
+  const pathFor = (el) => {
+    const parts = [];
+    let cur = el;
+    while (cur && cur !== document.body) {
+      if (cur.id) {
+        parts.unshift('#' + cur.id);
+        return parts.join('>');
+      }
+      const parent = cur.parentNode;
+      if (!parent || parent.nodeType !== 1) break;
+      const sib = Array.from(parent.children).filter((c) => c.tagName === cur.tagName);
+      const idx = sib.indexOf(cur);
+      parts.unshift(cur.tagName.toLowerCase() + '[' + idx + ']');
+      cur = parent;
+    }
+    return parts.join('>');
+  };
+
+  // Snapshot every editable element. Order matters here — the Phase 4 modules
+  // have already added .is-editable to all targets by the time this runs.
+  const editables = Array.from(main.querySelectorAll('.is-editable'));
+  const originals = new Map(); // tvId -> original text
+
+  for (const el of editables) {
+    if (!el.dataset.tvId) el.dataset.tvId = pathFor(el);
+    originals.set(el.dataset.tvId, el.textContent);
+  }
+
+  // ---- Restore from storage (synchronous, before TOC + anchors) ------------
+  const readStorage = () => {
+    let raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); }
+    catch { return null; } // localStorage blocked (private mode / quota)
+    if (!raw) return null;
+    try {
+      const data = JSON.parse(raw);
+      if (!data || data.version !== SCHEMA_VERSION) return null;
+      return data;
+    } catch { return null; }
+  };
+
+  const writeStorage = (data) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      return true;
+    } catch { return false; } // Quota or disabled — silent.
+  };
+
+  let lastSavedAt = null;
+  let lastSavedEditCount = 0;
+  let dirty = false;
+
+  const stored = readStorage();
+  if (stored && stored.edits) {
+    for (const [tvId, text] of Object.entries(stored.edits)) {
+      const el = main.querySelector('[data-tv-id="' + CSS.escape(tvId) + '"]');
+      if (el && typeof text === 'string') el.textContent = text;
+    }
+    lastSavedAt = stored.savedAt || null;
+    lastSavedEditCount = Object.keys(stored.edits).length;
+  }
+
+  // ---- Save (debounced) ----------------------------------------------------
+  const collect = () => {
+    const edits = {};
+    for (const el of editables) {
+      const id = el.dataset.tvId;
+      const cur = el.textContent;
+      const orig = originals.get(id);
+      if (orig !== undefined && cur !== orig) edits[id] = cur;
+    }
+    return edits;
+  };
+
+  const listeners = new Set();
+  const emit = (event) => {
+    for (const fn of listeners) {
+      try { fn(event); } catch (e) { console.error(e); }
+    }
+  };
+
+  const saveNow = () => {
+    const edits = collect();
+    const count = Object.keys(edits).length;
+    if (count === 0) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+      lastSavedAt = null;
+      lastSavedEditCount = 0;
+      dirty = false;
+      emit({ type: 'saved', count: 0, savedAt: null, cleared: true });
+      return;
+    }
+    const ok = writeStorage({
+      version: SCHEMA_VERSION,
+      savedAt: Date.now(),
+      edits,
+    });
+    if (ok) {
+      lastSavedAt = Date.now();
+      lastSavedEditCount = count;
+      dirty = false;
+      emit({ type: 'saved', count, savedAt: lastSavedAt, cleared: false });
+    } else {
+      emit({ type: 'error', reason: 'storage' });
+    }
+  };
+
+  let saveTimer = null;
+  const scheduleSave = () => {
+    if (!dirty) {
+      dirty = true;
+      emit({ type: 'dirty' });
+    }
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { saveTimer = null; saveNow(); }, SAVE_DEBOUNCE_MS);
+  };
+
+  // Listen for any input inside main; we filter to .is-editable here so future
+  // additions (Phase 7 add-row, etc.) auto-participate as long as they get
+  // tagged with .is-editable + data-tv-id on insertion.
+  main.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const editable = t.closest('.is-editable[data-tv-id]');
+    if (!editable) return;
+    scheduleSave();
+  });
+
+  return {
+    saveNow,
+    isDirty: () => dirty || saveTimer !== null,
+    hasStoredEdits: () => lastSavedEditCount > 0,
+    lastSavedAt: () => lastSavedAt,
+    clear: () => {
+      try { localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+      lastSavedAt = null;
+      lastSavedEditCount = 0;
+      dirty = false;
+      emit({ type: 'saved', count: 0, savedAt: null, cleared: true });
+    },
+    onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+  };
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Heading anchors + copy link (Phase 3.2)                                    */
 /* -------------------------------------------------------------------------- */
 (function initHeadingAnchors() {
@@ -548,9 +708,17 @@ const TVEditor = (function initEditMode() {
   const linkBySectionId = new Map();
   const numRe = /^\s*(\d+(?:\.\d+)*)[.\s]+(.*)$/;
 
+  // initHeadingAnchors runs before us and appends <a class="anchor-link">#</a>
+  // to every heading. Strip those so they don't leak into TOC labels.
+  const labelOf = (h) => {
+    const clone = h.cloneNode(true);
+    clone.querySelectorAll('.anchor-link').forEach((n) => n.remove());
+    return (clone.textContent || '').trim().replace(/\s+/g, ' ');
+  };
+
   for (const sec of sections) {
     const h2 = sec.querySelector(':scope > h2');
-    const raw = (h2.textContent || '').trim().replace(/\s+/g, ' ');
+    const raw = labelOf(h2);
     const match = raw.match(numRe);
     const num = match ? match[1] : '';
     const text = match ? match[2] : raw;
