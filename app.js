@@ -1267,6 +1267,265 @@ const TVExport = (function initExport() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Add/remove rows in tables (Phase 7.1)                                      */
+/*                                                                            */
+/*   Floating 3-button toolbar appears above the focused tbody row while in   */
+/*   edit mode. Cell text edits persist via Phase 5.1; structural changes     */
+/*   (added/removed rows) are session-only — they survive within the page     */
+/*   lifetime but not across reloads, since persistence stores text-by-id     */
+/*   and the original markup is the source of truth on next load.             */
+/* -------------------------------------------------------------------------- */
+(function initTableRowEditing() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  // Build the floating toolbar once and park it on the body.
+  const toolbar = document.createElement('div');
+  toolbar.className = 'table-row-toolbar';
+  toolbar.hidden = true;
+  toolbar.setAttribute('role', 'toolbar');
+  toolbar.setAttribute('aria-label', 'Row actions');
+  toolbar.innerHTML =
+    '<button type="button" class="table-row-toolbar__btn"' +
+    '  data-row-action="insert-above" title="Insert row above (Cmd/Ctrl+Shift+Enter)"' +
+    '  aria-label="Insert row above">↑+</button>' +
+    '<button type="button" class="table-row-toolbar__btn"' +
+    '  data-row-action="insert-below" title="Insert row below (Cmd/Ctrl+Enter at end)"' +
+    '  aria-label="Insert row below">+↓</button>' +
+    '<span class="table-row-toolbar__sep" aria-hidden="true"></span>' +
+    '<button type="button" class="table-row-toolbar__btn table-row-toolbar__btn--danger"' +
+    '  data-row-action="delete" title="Delete row" aria-label="Delete row">×</button>';
+  document.body.appendChild(toolbar);
+
+  let activeRow = null;
+
+  // ---- Helpers -------------------------------------------------------------
+  const isInTbody = (row) =>
+    row && row.parentElement && row.parentElement.tagName === 'TBODY';
+
+  const newId = () =>
+    'gen-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+  const supportsPlaintextOnly = (() => {
+    const probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+  const editableValue = supportsPlaintextOnly ? 'plaintext-only' : 'true';
+
+  const wireCell = (cell) => {
+    cell.classList.add('is-editable');
+    cell.dataset.tvId = newId();
+    if (!cell.hasAttribute('data-placeholder')) {
+      cell.setAttribute('data-placeholder', '—');
+    }
+    cell.dataset.empty = 'true';
+    if (TVEditor.isEditing()) {
+      cell.setAttribute('contenteditable', editableValue);
+      cell.setAttribute('spellcheck', 'true');
+    }
+  };
+
+  const cloneRowStructure = (template) => {
+    const newRow = document.createElement('tr');
+    for (const cell of template.cells) {
+      const fresh = document.createElement(cell.tagName.toLowerCase());
+      // Preserve structural attributes (scope on row-headers, inline width).
+      if (cell.hasAttribute('scope')) fresh.setAttribute('scope', cell.getAttribute('scope'));
+      if (cell.hasAttribute('style')) fresh.setAttribute('style', cell.getAttribute('style'));
+      if (cell.hasAttribute('colspan')) fresh.setAttribute('colspan', cell.getAttribute('colspan'));
+      wireCell(fresh);
+      newRow.appendChild(fresh);
+    }
+    return newRow;
+  };
+
+  const focusFirstCell = (row) => {
+    const first = row && row.cells[0];
+    if (!first) return;
+    first.focus({ preventScroll: false });
+    // Place caret inside the empty cell so typing immediately fills it.
+    const range = document.createRange();
+    range.selectNodeContents(first);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  // ---- Toolbar position ----------------------------------------------------
+  const positionToolbar = () => {
+    if (!activeRow || !TVEditor.isEditing()) {
+      toolbar.hidden = true;
+      return;
+    }
+    if (!document.body.contains(activeRow)) {
+      activeRow = null;
+      toolbar.hidden = true;
+      return;
+    }
+    const rect = activeRow.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      toolbar.hidden = true;
+      return;
+    }
+    toolbar.hidden = false;
+    // Provisional placement so we can measure the toolbar's own size.
+    toolbar.style.top = '0px';
+    toolbar.style.left = '0px';
+    const tbHeight = toolbar.offsetHeight || 30;
+    const tbWidth = toolbar.offsetWidth || 100;
+
+    let top = rect.top - tbHeight - 4;
+    if (top < 8) top = rect.bottom + 4; // Flip below if not enough space above
+    let left = rect.left;
+    const maxLeft = window.innerWidth - tbWidth - 8;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+
+    toolbar.style.top = top + 'px';
+    toolbar.style.left = left + 'px';
+  };
+
+  const reposition = () => requestAnimationFrame(positionToolbar);
+
+  // ---- Show / hide on focus -----------------------------------------------
+  document.addEventListener('focusin', (e) => {
+    if (!TVEditor.isEditing()) {
+      activeRow = null;
+      toolbar.hidden = true;
+      return;
+    }
+    // Keep toolbar up if focus moved INTO it (e.g., via Tab from a cell).
+    if (toolbar.contains(e.target)) return;
+
+    const cell = e.target.closest('th, td');
+    if (cell && main.contains(cell)) {
+      const row = cell.closest('tr');
+      if (isInTbody(row)) {
+        activeRow = row;
+        positionToolbar();
+        return;
+      }
+    }
+
+    // Focus moved somewhere irrelevant — defer hide so a click on the toolbar
+    // (which transiently steals focus on some browsers) doesn't kill it.
+    setTimeout(() => {
+      const ae = document.activeElement;
+      if (toolbar.contains(ae)) return;
+      const inCell = ae && ae.closest && ae.closest('th, td') && main.contains(ae);
+      if (!inCell) {
+        activeRow = null;
+        toolbar.hidden = true;
+      }
+    }, 80);
+  });
+
+  // Block focus-shift while clicking the toolbar so the active cell stays
+  // focused and the row-action handler can rely on `activeRow`.
+  toolbar.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.table-row-toolbar__btn')) e.preventDefault();
+  });
+
+  // ---- Reposition on layout shifts ----------------------------------------
+  // Use capture so .table-wrap horizontal scrolling and inner scrolls also fire.
+  window.addEventListener('scroll', reposition, { passive: true, capture: true });
+  window.addEventListener('resize', reposition, { passive: true });
+
+  // ---- Actions -------------------------------------------------------------
+  const insertAbove = () => {
+    if (!activeRow) return;
+    const fresh = cloneRowStructure(activeRow);
+    activeRow.parentElement.insertBefore(fresh, activeRow);
+    activeRow = fresh;
+    focusFirstCell(fresh);
+    reposition();
+  };
+
+  const insertBelow = () => {
+    if (!activeRow) return;
+    const fresh = cloneRowStructure(activeRow);
+    activeRow.parentElement.insertBefore(fresh, activeRow.nextSibling);
+    activeRow = fresh;
+    focusFirstCell(fresh);
+    reposition();
+  };
+
+  const deleteRow = () => {
+    if (!activeRow) return;
+    const tbody = activeRow.parentElement;
+    const isOnlyRow = tbody.rows.length === 1;
+    const hasContent = activeRow.textContent.trim().length > 0;
+
+    if (isOnlyRow) {
+      window.alert('Cannot delete the only row in a table.');
+      return;
+    }
+    if (hasContent) {
+      const ok = window.confirm('Delete this row? Its content will be lost.');
+      if (!ok) return;
+    }
+
+    // Pick a neighbor to focus after removal.
+    const next = activeRow.nextElementSibling || activeRow.previousElementSibling;
+    activeRow.remove();
+    if (next && next.cells[0]) {
+      activeRow = next;
+      next.cells[0].focus();
+    } else {
+      activeRow = null;
+    }
+    reposition();
+  };
+
+  toolbar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-row-action]');
+    if (!btn) return;
+    const action = btn.dataset.rowAction;
+    if (action === 'insert-above') insertAbove();
+    else if (action === 'insert-below') insertBelow();
+    else if (action === 'delete') deleteRow();
+  });
+
+  // ---- Keyboard shortcuts inside cells ------------------------------------
+  main.addEventListener('keydown', (e) => {
+    if (!TVEditor.isEditing()) return;
+    const cell = e.target.closest('td, th');
+    if (!cell || !main.contains(cell)) return;
+    const row = cell.closest('tr');
+    if (!isInTbody(row)) return;
+
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+
+    if (e.key === 'Enter') {
+      // Cmd/Ctrl + Enter      → insert row below
+      // Cmd/Ctrl + Shift+Enter → insert row above
+      e.preventDefault();
+      activeRow = row;
+      if (e.shiftKey) insertAbove();
+      else insertBelow();
+    } else if (e.key === 'Backspace' && e.shiftKey) {
+      // Cmd/Ctrl + Shift + Backspace → delete row (avoid clashing with
+      // the browser's "delete word" Cmd+Backspace shortcut).
+      e.preventDefault();
+      activeRow = row;
+      deleteRow();
+    }
+  });
+
+  // ---- Cleanup on edit-mode exit ------------------------------------------
+  TVEditor.onChange((on) => {
+    if (!on) {
+      activeRow = null;
+      toolbar.hidden = true;
+    }
+  });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Per-section copy button (Phase 6.4)                                        */
 /* -------------------------------------------------------------------------- */
 (function initSectionCopy() {

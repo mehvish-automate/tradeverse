@@ -967,6 +967,53 @@ body[data-edit-mode="true"] .content::before {
   .reading-progress, .back-to-top { display: none !important; }
 }
 
+/* ---------- Table row editor toolbar (Part 7.1) --------------------------- */
+.table-row-toolbar {
+  position: fixed;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  background: var(--tv-ink);
+  color: var(--tv-text-on-dark);
+  border: 1px solid var(--tv-ink-line);
+  border-radius: var(--tv-radius-sm);
+  box-shadow: var(--tv-shadow-md);
+  font-size: var(--tv-fs-small);
+  user-select: none;
+}
+.table-row-toolbar[hidden] { display: none; }
+.table-row-toolbar__btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 0.28em 0.6em;
+  border-radius: var(--tv-radius-xs);
+  cursor: pointer;
+  font-family: var(--tv-font-mono);
+  font-weight: var(--tv-fw-semi);
+  line-height: 1;
+}
+.table-row-toolbar__btn:hover { background: var(--tv-ink-3); }
+.table-row-toolbar__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+.table-row-toolbar__btn--danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffd1d1;
+}
+.table-row-toolbar__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--tv-ink-line);
+  margin: 0 1px;
+}
+
+@media print { .table-row-toolbar { display: none !important; } }
+
 /* ---------- Per-section copy button (Part 6.4) ---------------------------- */
 /* Sections need to be a positioning context for the absolute button. */
 .content > section { position: relative; }
