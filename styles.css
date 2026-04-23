@@ -967,6 +967,58 @@ body[data-edit-mode="true"] .content::before {
   .reading-progress, .back-to-top { display: none !important; }
 }
 
+/* ---------- Selection mini-toolbar (Part 7.3) ----------------------------- */
+.selection-toolbar {
+  position: fixed;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  background: var(--tv-ink);
+  color: var(--tv-text-on-dark);
+  border: 1px solid var(--tv-ink-line);
+  border-radius: var(--tv-radius-sm);
+  box-shadow: var(--tv-shadow-md);
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--tv-font-mono);
+  font-size: var(--tv-fs-small);
+}
+.selection-toolbar[hidden] { display: none; }
+.selection-toolbar__btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--tv-radius-xs);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--tv-fw-bold);
+  line-height: 1;
+}
+.selection-toolbar__btn:hover { background: var(--tv-ink-3); }
+.selection-toolbar__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+.selection-toolbar__btn--bold   { font-family: var(--tv-font-sans); font-style: normal; }
+.selection-toolbar__btn--italic { font-family: var(--tv-font-sans); font-style: italic; }
+.selection-toolbar__btn--code   { font-size: 0.78rem; }
+.selection-toolbar__btn--link   { font-size: 0.95rem; }
+.selection-toolbar__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--tv-ink-line);
+  margin: 0 1px;
+}
+
+@media print { .selection-toolbar { display: none !important; } }
+
 /* ---------- Add-new-section button (Part 7.2) ----------------------------- */
 .add-section-btn {
   display: none;

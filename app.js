@@ -1267,6 +1267,174 @@ const TVExport = (function initExport() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Selection mini-toolbar (Phase 7.3)                                         */
+/*                                                                            */
+/*   Floating dark popover that appears above any non-empty text selection    */
+/*   inside an actively-editable element. Buttons + shortcuts wrap the        */
+/*   selection in plain markdown markers (**bold**, *italic*, `code`,         */
+/*   [text](url)). Doc stays plaintext — markers are visible inline in the    */
+/*   HTML view and rendered correctly by the Phase 6.2 markdown export.       */
+/* -------------------------------------------------------------------------- */
+(function initSelectionToolbar() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'selection-toolbar';
+  toolbar.hidden = true;
+  toolbar.setAttribute('role', 'toolbar');
+  toolbar.setAttribute('aria-label', 'Format selection');
+  toolbar.innerHTML =
+    '<button type="button" class="selection-toolbar__btn selection-toolbar__btn--bold"' +
+    '  data-md-action="bold" title="Bold (Cmd/Ctrl+B → wraps in **…**)" aria-label="Bold">B</button>' +
+    '<button type="button" class="selection-toolbar__btn selection-toolbar__btn--italic"' +
+    '  data-md-action="italic" title="Italic (Cmd/Ctrl+I → wraps in *…*)" aria-label="Italic">I</button>' +
+    '<button type="button" class="selection-toolbar__btn selection-toolbar__btn--code"' +
+    '  data-md-action="code" title="Inline code (wraps in `…`)" aria-label="Code">&lt;/&gt;</button>' +
+    '<span class="selection-toolbar__sep" aria-hidden="true"></span>' +
+    '<button type="button" class="selection-toolbar__btn selection-toolbar__btn--link"' +
+    '  data-md-action="link" title="Link (Cmd/Ctrl+K → wraps in [text](url))" aria-label="Link">↗</button>';
+  document.body.appendChild(toolbar);
+
+  // ---- Position helper -----------------------------------------------------
+  const positionAt = (rect) => {
+    toolbar.hidden = false;
+    toolbar.style.top = '0px';
+    toolbar.style.left = '0px';
+    const tbHeight = toolbar.offsetHeight || 32;
+    const tbWidth = toolbar.offsetWidth || 160;
+
+    let top = rect.top - tbHeight - 6;
+    if (top < 8) top = rect.bottom + 6;
+    let left = rect.left + (rect.width / 2) - (tbWidth / 2);
+    const maxLeft = window.innerWidth - tbWidth - 8;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 8) left = 8;
+
+    toolbar.style.top = top + 'px';
+    toolbar.style.left = left + 'px';
+  };
+
+  // ---- Visibility logic ----------------------------------------------------
+  const findEditableForSelection = (sel) => {
+    if (!sel || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    let node = range.startContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+    if (!node) return null;
+    const editable = node.closest('.is-editable');
+    if (!editable || !main.contains(editable)) return null;
+    if (!editable.isContentEditable) return null;
+    return editable;
+  };
+
+  const refresh = () => {
+    if (!TVEditor.isEditing()) { toolbar.hidden = true; return; }
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.toString().trim().length === 0) {
+      toolbar.hidden = true;
+      return;
+    }
+    const editable = findEditableForSelection(sel);
+    if (!editable) { toolbar.hidden = true; return; }
+
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) { toolbar.hidden = true; return; }
+    positionAt(rect);
+  };
+
+  document.addEventListener('selectionchange', () => {
+    requestAnimationFrame(refresh);
+  });
+  window.addEventListener('scroll', () => {
+    if (!toolbar.hidden) requestAnimationFrame(refresh);
+  }, { passive: true, capture: true });
+  window.addEventListener('resize', refresh, { passive: true });
+
+  // Block focus shift while clicking the toolbar so the selection survives.
+  toolbar.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.selection-toolbar__btn')) e.preventDefault();
+  });
+
+  // ---- Wrap action ---------------------------------------------------------
+  const wrapSelection = (prefix, suffix) => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const text = sel.toString();
+    if (!text) return;
+    const wrapped = prefix + text + suffix;
+
+    // Prefer execCommand for native undo support; fall back to range
+    // manipulation if it's been removed by the browser.
+    let inserted = false;
+    try {
+      inserted = document.execCommand('insertText', false, wrapped);
+    } catch { inserted = false; }
+    if (!inserted) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(wrapped));
+      // Move caret after inserted text.
+      sel.removeAllRanges();
+      const next = document.createRange();
+      next.setStart(range.endContainer, range.endOffset);
+      next.collapse(true);
+      sel.addRange(next);
+
+      // Trigger persistence input event manually.
+      const editable = findEditableForSelection(sel);
+      if (editable) editable.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    }
+    toolbar.hidden = true;
+  };
+
+  toolbar.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-md-action]');
+    if (!btn) return;
+    const action = btn.dataset.mdAction;
+    if (action === 'bold')   { wrapSelection('**', '**'); return; }
+    if (action === 'italic') { wrapSelection('*', '*'); return; }
+    if (action === 'code')   { wrapSelection('`', '`'); return; }
+    if (action === 'link') {
+      const url = window.prompt('Link URL:', 'https://');
+      if (!url) return;
+      wrapSelection('[', '](' + url.trim() + ')');
+    }
+  });
+
+  // ---- Keyboard shortcuts inside editable content -------------------------
+  main.addEventListener('keydown', (e) => {
+    if (!TVEditor.isEditing()) return;
+    const editable = e.target.closest('.is-editable');
+    if (!editable || !editable.isContentEditable) return;
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod || e.altKey) return;
+
+    const sel = window.getSelection();
+    const hasSel = sel && !sel.isCollapsed && sel.toString().length > 0;
+
+    if (e.key === 'b' || e.key === 'B') {
+      if (!hasSel) return;
+      e.preventDefault();
+      wrapSelection('**', '**');
+    } else if (e.key === 'i' || e.key === 'I') {
+      if (!hasSel) return;
+      e.preventDefault();
+      wrapSelection('*', '*');
+    } else if (e.key === 'k' || e.key === 'K') {
+      if (!hasSel) return;
+      e.preventDefault();
+      const url = window.prompt('Link URL:', 'https://');
+      if (url) wrapSelection('[', '](' + url.trim() + ')');
+    }
+  });
+
+  TVEditor.onChange((on) => { if (!on) toolbar.hidden = true; });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Add new section (Phase 7.2)                                                */
 /*                                                                            */
 /*   Bottom-of-doc 'Add new section' button (visible only in edit mode)       */
