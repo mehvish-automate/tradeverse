@@ -1267,6 +1267,132 @@ const TVExport = (function initExport() {
 })();
 
 /* -------------------------------------------------------------------------- */
+/* Add new section (Phase 7.2)                                                */
+/*                                                                            */
+/*   Bottom-of-doc 'Add new section' button (visible only in edit mode)       */
+/*   prompts for a title, builds a new <section> with H2 + starter paragraph, */
+/*   wires editing affordances + heading anchor + copy button, and hands the  */
+/*   section to TVToc so it appears in the sidebar and joins scroll-spy.      */
+/*   Section structure is session-only (text persists per cell, but the new   */
+/*   section itself disappears on reload); same trade-off as Phase 7.1 rows.  */
+/* -------------------------------------------------------------------------- */
+(function initAddSection() {
+  if (!TVEditor) return;
+  const main = document.getElementById('main');
+  if (!main) return;
+
+  const supportsPlaintextOnly = (() => {
+    const probe = document.createElement('div');
+    probe.setAttribute('contenteditable', 'plaintext-only');
+    return probe.contentEditable === 'plaintext-only';
+  })();
+  const editableValue = supportsPlaintextOnly ? 'plaintext-only' : 'true';
+
+  const newId = (prefix) =>
+    prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+
+  const wireEditable = (el, placeholder) => {
+    el.classList.add('is-editable');
+    if (!el.dataset.tvId) el.dataset.tvId = newId('gen');
+    if (!el.hasAttribute('data-placeholder')) {
+      el.setAttribute('data-placeholder', placeholder);
+    }
+    if (TVEditor.isEditing()) {
+      el.setAttribute('contenteditable', editableValue);
+      el.setAttribute('spellcheck', 'true');
+    }
+  };
+
+  const addAnchorLink = (h) => {
+    const a = document.createElement('a');
+    a.className = 'anchor-link';
+    a.href = '#' + h.id;
+    a.setAttribute('aria-label', 'Copy link to ' + (h.textContent || '').trim());
+    a.setAttribute('contenteditable', 'false');
+    a.textContent = '#';
+    h.appendChild(a);
+  };
+
+  const addCopyButton = (sec) => {
+    if (!TVExport || typeof TVExport.nodeToMarkdown !== 'function') return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'section-copy';
+    btn.setAttribute('aria-label', 'Copy this section as Markdown');
+    btn.dataset.sectionCopy = sec.id;
+    btn.innerHTML =
+      '<span class="section-copy__icon" aria-hidden="true">⎘</span>' +
+      '<span class="section-copy__label">Copy</span>';
+    sec.appendChild(btn);
+  };
+
+  // ---- Build the trigger ---------------------------------------------------
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'add-section-btn';
+  button.setAttribute('data-add-section', 'true');
+  button.innerHTML = '<span class="add-section-btn__plus" aria-hidden="true">+</span>Add new section';
+  main.appendChild(button);
+
+  button.addEventListener('click', () => {
+    const titleRaw = window.prompt(
+      'Section title:\n(You can edit this later — unlock structure first.)',
+      'New section'
+    );
+    if (titleRaw === null) return;
+    const title = (titleRaw || '').trim() || 'New section';
+
+    const sectionId = newId('sec-custom');
+    const headingId = 'h-' + sectionId;
+
+    const section = document.createElement('section');
+    section.id = sectionId;
+    section.setAttribute('aria-labelledby', headingId);
+    section.dataset.tvFresh = 'true';
+
+    const h2 = document.createElement('h2');
+    h2.id = headingId;
+    h2.textContent = title;
+
+    const p = document.createElement('p');
+    p.textContent = '';
+
+    section.append(h2, p);
+    main.insertBefore(section, button);
+
+    // Wire affordances. The heading registers .is-editable so the heading-
+    // lock toggle treats it consistently with built-in headings.
+    wireEditable(h2, 'Section title');
+    wireEditable(p, 'Start writing the section…');
+
+    // The paragraph starts empty; mark so the placeholder shows.
+    p.dataset.empty = 'true';
+
+    addAnchorLink(h2);
+    addCopyButton(section);
+
+    if (typeof TVToc !== 'undefined' && TVToc && TVToc.addSection) {
+      TVToc.addSection(section);
+    }
+    if (typeof TVTocSearch !== 'undefined' && TVTocSearch && TVTocSearch.refresh) {
+      TVTocSearch.refresh();
+    }
+
+    // Smooth-scroll to the new section and focus the body so the user can
+    // start typing immediately. Heading remains locked by default — the
+    // 'Unlock structure' toggle in the toolbar is the path to renaming it.
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      try { p.focus({ preventScroll: true }); }
+      catch { /* ignore */ }
+    }, 250);
+
+    // Drop the freshness marker after the highlight animation finishes.
+    setTimeout(() => { delete section.dataset.tvFresh; }, 1800);
+  });
+})();
+
+/* -------------------------------------------------------------------------- */
 /* Add/remove rows in tables (Phase 7.1)                                      */
 /*                                                                            */
 /*   Floating 3-button toolbar appears above the focused tbody row while in   */
@@ -1883,18 +2009,11 @@ const TVExport = (function initExport() {
 /* -------------------------------------------------------------------------- */
 /* TOC builder + scroll-spy (Phase 3.1)                                       */
 /* -------------------------------------------------------------------------- */
-(function initTOC() {
+const TVToc = (function initTOC() {
   const list = document.querySelector('[data-toc-list]');
   const main = document.getElementById('main');
-  if (!list || !main) return;
+  if (!list || !main) return null;
 
-  // Pull every top-level <section> with an id, and use its first H2 as label.
-  const sections = Array.from(main.querySelectorAll('section[id]')).filter((s) => {
-    return s.querySelector(':scope > h2');
-  });
-  if (!sections.length) return;
-
-  // Build TOC items.
   const linkBySectionId = new Map();
   const numRe = /^\s*(\d+(?:\.\d+)*)[.\s]+(.*)$/;
 
@@ -1906,8 +2025,11 @@ const TVExport = (function initExport() {
     return (clone.textContent || '').trim().replace(/\s+/g, ' ');
   };
 
-  for (const sec of sections) {
+  // Build a single TOC entry from a section. Returns the link element
+  // so the caller can wire it into scroll-spy.
+  const buildEntry = (sec) => {
     const h2 = sec.querySelector(':scope > h2');
+    if (!h2) return null;
     const raw = labelOf(h2);
     const match = raw.match(numRe);
     const num = match ? match[1] : '';
@@ -1932,9 +2054,20 @@ const TVExport = (function initExport() {
 
     a.append(numEl, textEl);
     li.append(a);
-    list.append(li);
+    return { li, a };
+  };
 
-    linkBySectionId.set(sec.id, a);
+  // Pull every top-level <section> with an id, and use its first H2 as label.
+  const sections = Array.from(main.querySelectorAll('section[id]')).filter((s) => {
+    return s.querySelector(':scope > h2');
+  });
+  if (!sections.length) return null;
+
+  for (const sec of sections) {
+    const built = buildEntry(sec);
+    if (!built) continue;
+    list.append(built.li);
+    linkBySectionId.set(sec.id, built.a);
   }
 
   // Close mobile drawer after picking a section.
@@ -1995,17 +2128,56 @@ const TVExport = (function initExport() {
     if (!intersecting.size) setActive(sections[0].id);
     else pickActive();
   });
+
+  // ---- Public API for runtime additions (Phase 7.2) -----------------------
+  return {
+    addSection: (sec) => {
+      if (!sec || !sec.id) return null;
+      if (linkBySectionId.has(sec.id)) return linkBySectionId.get(sec.id);
+      const built = buildEntry(sec);
+      if (!built) return null;
+      list.append(built.li);
+      linkBySectionId.set(sec.id, built.a);
+      io.observe(sec);
+      return built.a;
+    },
+    removeSection: (secId) => {
+      const link = linkBySectionId.get(secId);
+      if (!link) return;
+      const li = link.closest('.toc__item');
+      if (li) li.remove();
+      linkBySectionId.delete(secId);
+      const sec = document.getElementById(secId);
+      if (sec) io.unobserve(sec);
+    },
+    /** Re-read the H2 text into the TOC link (useful after a heading edit). */
+    relabel: (secId) => {
+      const link = linkBySectionId.get(secId);
+      const sec = document.getElementById(secId);
+      if (!link || !sec) return;
+      const h2 = sec.querySelector(':scope > h2');
+      if (!h2) return;
+      const raw = labelOf(h2);
+      const match = raw.match(numRe);
+      const num = match ? match[1] : '';
+      const text = match ? match[2] : raw;
+      const numEl = link.querySelector('.toc__num');
+      const textEl = link.querySelector('.toc__text');
+      if (numEl) numEl.textContent = num;
+      if (textEl) textEl.textContent = text;
+    },
+  };
 })();
 
 /* -------------------------------------------------------------------------- */
 /* TOC search/filter (Phase 3.3)                                              */
 /* -------------------------------------------------------------------------- */
-(function initTOCSearch() {
+const TVTocSearch = (function initTOCSearch() {
   const input = document.querySelector('[data-toc-search]');
   const clear = document.querySelector('[data-toc-search-clear]');
   const empty = document.querySelector('[data-toc-empty]');
   const list = document.querySelector('[data-toc-list]');
-  if (!input || !clear || !empty || !list) return;
+  if (!input || !clear || !empty || !list) return null;
 
   // Wait until the TOC has been built before snapshotting the original labels.
   const snapshot = () => {
@@ -2092,6 +2264,15 @@ const TVExport = (function initExport() {
       }
     }
   });
+
+  // ---- Public API -----------------------------------------------------------
+  return {
+    /** Re-read the TOC entries (call after sections are added/removed). */
+    refresh: () => {
+      entries = snapshot();
+      apply(input.value);
+    },
+  };
 })();
 
 /* -------------------------------------------------------------------------- */

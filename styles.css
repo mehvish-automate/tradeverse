@@ -967,6 +967,52 @@ body[data-edit-mode="true"] .content::before {
   .reading-progress, .back-to-top { display: none !important; }
 }
 
+/* ---------- Add-new-section button (Part 7.2) ----------------------------- */
+.add-section-btn {
+  display: none;
+  margin: var(--tv-sp-12) auto var(--tv-sp-6);
+  padding: var(--tv-sp-3) var(--tv-sp-5);
+  background: transparent;
+  border: 1.5px dashed var(--tv-border-strong);
+  color: var(--tv-text-muted);
+  border-radius: var(--tv-radius-md);
+  font-size: var(--tv-fs-small);
+  font-weight: var(--tv-fw-semi);
+  cursor: pointer;
+  transition: background var(--tv-dur-fast) var(--tv-ease),
+              border-color var(--tv-dur-fast) var(--tv-ease),
+              color var(--tv-dur-fast) var(--tv-ease);
+  min-width: 220px;
+}
+.add-section-btn:hover {
+  background: var(--tv-brand-soft);
+  border-color: var(--tv-brand);
+  color: var(--tv-brand-strong);
+  border-style: solid;
+}
+.add-section-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+.add-section-btn__plus {
+  display: inline-block;
+  margin-right: 0.4em;
+  font-weight: var(--tv-fw-bold);
+}
+
+body[data-edit-mode="true"] .add-section-btn { display: block; }
+
+@media print { .add-section-btn { display: none !important; } }
+
+/* Brief flash so a freshly-added section is visually obvious. */
+@keyframes tv-section-pop {
+  0%   { background-color: rgba(247, 181, 0, 0.28); }
+  100% { background-color: transparent; }
+}
+.content > section[data-tv-fresh="true"] {
+  animation: tv-section-pop 1.6s var(--tv-ease) 1;
+}
+
 /* ---------- Table row editor toolbar (Part 7.1) --------------------------- */
 .table-row-toolbar {
   position: fixed;
