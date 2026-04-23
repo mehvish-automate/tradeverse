@@ -85,8 +85,39 @@ const TVEditor = (function initEditMode() {
   // Cache the editable nodes once — DOM is static after Phase 2.
   const targets = Array.from(document.querySelectorAll(SELECTOR));
 
-  // Tag once for CSS hooks; CSS shows affordances only when in edit mode.
-  for (const el of targets) el.classList.add('is-editable');
+  // Chromium forces white-space-collapse: preserve on
+  // contenteditable="plaintext-only" (not overridable via author CSS),
+  // which makes pretty-printed HTML indentation visible in edit mode.
+  // Normalize text nodes inside each editable once at init so the
+  // source-formatting whitespace is gone before the browser ever
+  // switches them to editable. View-mode rendering is unchanged
+  // (white-space: normal collapses the same whitespace visually).
+  const WHITESPACE_RUN = /[\s ]+/g;
+  const normalizeWhitespace = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const texts = [];
+    let n;
+    while ((n = walker.nextNode())) texts.push(n);
+    for (let i = 0; i < texts.length; i++) {
+      const t = texts[i];
+      let s = (t.nodeValue || '').replace(WHITESPACE_RUN, ' ');
+      // Trim leading space if the previous sibling ends with whitespace
+      // (or there's no previous sibling of meaningful content).
+      if (i === 0 || !t.previousSibling || /\s$/.test(t.previousSibling.textContent || '')) {
+        s = s.replace(/^ /, '');
+      }
+      // Trim trailing space if this is the last text node in the element.
+      if (i === texts.length - 1 || !t.nextSibling) {
+        s = s.replace(/ $/, '');
+      }
+      t.nodeValue = s;
+    }
+  };
+
+  for (const el of targets) {
+    normalizeWhitespace(el);
+    el.classList.add('is-editable');
+  }
 
   // Avoid making list-item content of the TOC editable (defensive — TOC lives
   // outside #main, but if anyone moves it inside later, this preserves intent).
@@ -2221,7 +2252,10 @@ const TVVersions = (function initVersionSnapshots() {
 
   // Also flush when the tab loses visibility — by the time the user
   // returns, their edits are guaranteed to be persisted.
+  // (Honors the disarm flag so Reset's outgoing navigation doesn't
+  //  re-save the to-be-discarded DOM state.)
   document.addEventListener('visibilitychange', () => {
+    if (!armed) return;
     if (document.visibilityState === 'hidden') {
       try { TVPersistence.saveNow(); } catch { /* noop */ }
     }

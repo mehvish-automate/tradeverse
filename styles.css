@@ -142,6 +142,11 @@ button, input, select, textarea {
   color: inherit;
 }
 
+/* The HTML `hidden` attribute should always win over any class-based
+   display rule (.toolbar__pill / .toolbar__menu / etc. set display:
+   inline-flex, which otherwise beats the UA default display: none). */
+[hidden] { display: none !important; }
+
 a {
   color: var(--tv-brand-strong);
   text-decoration: none;
@@ -850,6 +855,11 @@ body[data-edit-mode="true"] .is-editable {
   box-shadow: inset 3px 0 0 transparent;
   margin-left: -6px;
   padding-left: 6px;
+  /* Chromium applies an un-overridable white-space-collapse: preserve on
+     contenteditable=plaintext-only, so source-HTML indentation would
+     otherwise leak into the visible text. The matching fix is in JS
+     (initContentEditable) — text nodes of editable elements are
+     normalized once at init. */
 }
 
 body[data-edit-mode="true"] .is-editable:hover {
