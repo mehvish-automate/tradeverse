@@ -609,6 +609,38 @@ const TVPersistence = (function initPersistence() {
     scheduleSave();
   });
 
+  /**
+   * Apply a foreign edits map to the live DOM, resetting every other
+   * editable back to its original. After the DOM is in sync, persist via
+   * the normal saveNow path so the active storage key reflects the new
+   * state and the 'Saved' indicator updates. Phase 7.4 uses this to
+   * restore version snapshots in-place without a reload.
+   */
+  const applyEdits = (incoming) => {
+    const next = (incoming && typeof incoming === 'object') ? incoming : {};
+    for (const el of editables) {
+      const id = el.dataset.tvId;
+      const orig = originals.get(id);
+      const wanted = Object.prototype.hasOwnProperty.call(next, id)
+        ? next[id]
+        : orig;
+      if (typeof wanted === 'string' && el.textContent !== wanted) {
+        el.textContent = wanted;
+        // Make sure data-empty stays in sync for the placeholder.
+        if (wanted.trim() === '') el.dataset.empty = 'true';
+        else delete el.dataset.empty;
+      }
+    }
+    saveNow();
+
+    // Re-label any heading-bearing section so the TOC reflects the
+    // restored text without a full rebuild.
+    if (typeof TVToc !== 'undefined' && TVToc && TVToc.relabel) {
+      const sections = document.querySelectorAll('#main > section[id]');
+      for (const sec of sections) TVToc.relabel(sec.id);
+    }
+  };
+
   return {
     saveNow,
     isDirty: () => dirty || saveTimer !== null,
@@ -621,6 +653,10 @@ const TVPersistence = (function initPersistence() {
       dirty = false;
       emit({ type: 'saved', count: 0, savedAt: null, cleared: true });
     },
+    /** Snapshot of the current diff vs originals — used by Phase 7.4. */
+    getCurrentEdits: () => collect(),
+    /** Apply a previously-captured edits map (Phase 7.4 restore). */
+    applyEdits,
     onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
   };
 })();
@@ -1264,6 +1300,234 @@ const TVExport = (function initExport() {
   // Keyboard shortcut Cmd/Ctrl+P is already wired by the browser to
   // window.print(); our @media print stylesheet picks it up automatically.
   // No extra binding needed here.
+})();
+
+/* -------------------------------------------------------------------------- */
+/* Version snapshots (Phase 7.4)                                              */
+/*                                                                            */
+/*   Manual 'Save version' captures the current text-edit diff into a named  */
+/*   snapshot in localStorage; the popover lists snapshots with Restore /    */
+/*   Delete actions. Restore applies the snapshot edits in-place via         */
+/*   TVPersistence.applyEdits — no reload, TOC labels re-sync, the active    */
+/*   storage key updates so the change is durable.                            */
+/*                                                                            */
+/*   Storage:  tradeverse-prd-versions-v1                                     */
+/*   Schema :  { version: 1, snapshots: [{id, label, savedAt, edits}, …] }   */
+/*   Capacity: 20 most-recent (older snapshots dropped when limit reached).   */
+/* -------------------------------------------------------------------------- */
+const TVVersions = (function initVersionSnapshots() {
+  if (!TVEditor || !TVPersistence) return null;
+
+  const wrap = document.querySelector('[data-versions-menu]');
+  const trigger = document.querySelector('[data-versions-trigger]');
+  const popover = document.querySelector('[data-versions-popover]');
+  const form = document.querySelector('[data-versions-form]');
+  const input = document.querySelector('[data-versions-label-input]');
+  const listEl = document.querySelector('[data-versions-list]');
+  const emptyEl = document.querySelector('[data-versions-empty]');
+  if (!wrap || !trigger || !popover || !form || !input || !listEl || !emptyEl) return null;
+
+  const STORAGE_KEY = 'tradeverse-prd-versions-v1';
+  const SCHEMA_VERSION = 1;
+  const MAX_VERSIONS = 20;
+
+  // ---- Storage -------------------------------------------------------------
+  const load = () => {
+    let raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); }
+    catch { return []; }
+    if (!raw) return [];
+    try {
+      const data = JSON.parse(raw);
+      if (!data || data.version !== SCHEMA_VERSION) return [];
+      return Array.isArray(data.snapshots) ? data.snapshots : [];
+    } catch { return []; }
+  };
+
+  const persist = (snapshots) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        version: SCHEMA_VERSION,
+        snapshots,
+      }));
+      return true;
+    } catch { return false; }
+  };
+
+  // ---- Time formatting -----------------------------------------------------
+  const formatTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    const time = d.toLocaleTimeString(undefined, {
+      hour: 'numeric', minute: '2-digit',
+    });
+    if (sameDay) return 'Today · ' + time;
+    const date = d.toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+    return date + ' · ' + time;
+  };
+
+  // ---- Render -------------------------------------------------------------
+  const render = () => {
+    const snapshots = load();
+    listEl.innerHTML = '';
+    emptyEl.hidden = snapshots.length > 0;
+
+    for (const snap of snapshots) {
+      const li = document.createElement('li');
+      li.className = 'versions-popover__item';
+      li.dataset.versionId = snap.id;
+
+      const meta = document.createElement('div');
+      meta.className = 'versions-popover__meta';
+      const label = document.createElement('span');
+      label.className = 'versions-popover__label';
+      label.title = snap.label;
+      label.textContent = snap.label;
+      const time = document.createElement('span');
+      time.className = 'versions-popover__time';
+      const editCount = snap.edits ? Object.keys(snap.edits).length : 0;
+      time.textContent = formatTime(snap.savedAt) + ' · ' + editCount + ' edit' + (editCount === 1 ? '' : 's');
+      meta.append(label, time);
+
+      const restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'versions-popover__action';
+      restoreBtn.dataset.versionAction = 'restore';
+      restoreBtn.textContent = 'Restore';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'versions-popover__action versions-popover__action--danger';
+      deleteBtn.dataset.versionAction = 'delete';
+      deleteBtn.setAttribute('aria-label', 'Delete version: ' + snap.label);
+      deleteBtn.textContent = '×';
+
+      li.append(meta, restoreBtn, deleteBtn);
+      listEl.appendChild(li);
+    }
+
+    // The trigger button is hidden when no versions exist AND no edits exist
+    // — surface it the moment either becomes true.
+    const hasVersions = snapshots.length > 0;
+    const canSave = TVEditor.isEditing() || TVPersistence.hasStoredEdits() || hasVersions;
+    wrap.hidden = !canSave;
+  };
+
+  // ---- Actions -------------------------------------------------------------
+  const create = (label) => {
+    // Flush any pending edits so the snapshot reflects what's on screen.
+    try { TVPersistence.saveNow(); } catch { /* noop */ }
+    const edits = TVPersistence.getCurrentEdits();
+    const snapshots = load();
+    const snap = {
+      id: 'snap-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+      label: (label || '').trim() || 'Untitled · ' + new Date().toLocaleString(),
+      savedAt: Date.now(),
+      edits: edits || {},
+    };
+    snapshots.unshift(snap);
+    while (snapshots.length > MAX_VERSIONS) snapshots.pop();
+    if (!persist(snapshots)) {
+      window.alert('Could not save version — local storage may be full.');
+      return null;
+    }
+    return snap;
+  };
+
+  const restore = (id) => {
+    const snapshots = load();
+    const snap = snapshots.find((s) => s.id === id);
+    if (!snap) return false;
+    const editCount = snap.edits ? Object.keys(snap.edits).length : 0;
+    const ok = window.confirm(
+      'Restore "' + snap.label + '"?\n\n' +
+      'This replaces the current text with ' + editCount + ' edit' +
+      (editCount === 1 ? '' : 's') + ' from this version. ' +
+      'Save the current state first if you want to keep it.'
+    );
+    if (!ok) return false;
+    TVPersistence.applyEdits(snap.edits || {});
+    return true;
+  };
+
+  const remove = (id) => {
+    const snapshots = load();
+    const snap = snapshots.find((s) => s.id === id);
+    if (!snap) return false;
+    const ok = window.confirm('Delete version "' + snap.label + '"? This cannot be undone.');
+    if (!ok) return false;
+    persist(snapshots.filter((s) => s.id !== id));
+    return true;
+  };
+
+  // ---- Open / close popover ------------------------------------------------
+  const setOpen = (open) => {
+    trigger.setAttribute('aria-expanded', String(open));
+    popover.hidden = !open;
+    if (open) {
+      render();
+      setTimeout(() => input.focus({ preventScroll: true }), 0);
+    }
+  };
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(trigger.getAttribute('aria-expanded') !== 'true');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && trigger.getAttribute('aria-expanded') === 'true') {
+      setOpen(false);
+      trigger.focus();
+    }
+  });
+
+  // ---- Form submit -> save -------------------------------------------------
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const label = input.value.trim();
+    const snap = create(label);
+    if (!snap) return;
+    input.value = '';
+    render();
+  });
+
+  // ---- List actions (event-delegated) -------------------------------------
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-version-action]');
+    if (!btn) return;
+    const item = btn.closest('[data-version-id]');
+    if (!item) return;
+    const id = item.dataset.versionId;
+    const action = btn.dataset.versionAction;
+    if (action === 'restore') {
+      if (restore(id)) setOpen(false);
+    } else if (action === 'delete') {
+      if (remove(id)) render();
+    }
+  });
+
+  // ---- Show/hide trigger as state changes ---------------------------------
+  TVEditor.onChange(render);
+  TVPersistence.onChange(render);
+
+  // First paint.
+  render();
+
+  return {
+    list: load,
+    create,
+    restore,
+    remove,
+  };
 })();
 
 /* -------------------------------------------------------------------------- */

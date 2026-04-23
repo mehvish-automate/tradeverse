@@ -967,6 +967,163 @@ body[data-edit-mode="true"] .content::before {
   .reading-progress, .back-to-top { display: none !important; }
 }
 
+/* ---------- Version snapshots popover (Part 7.4) -------------------------- */
+.versions-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 360px;
+  max-width: 92vw;
+  padding: var(--tv-sp-3);
+  background: var(--tv-surface);
+  color: var(--tv-text);
+  border: 1px solid var(--tv-border);
+  border-radius: var(--tv-radius-md);
+  box-shadow: var(--tv-shadow-lg);
+  z-index: 60;
+  animation: tv-menu-in 120ms var(--tv-ease);
+}
+.versions-popover[hidden] { display: none; }
+
+.versions-popover__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--tv-sp-2);
+  align-items: stretch;
+}
+.versions-popover__input {
+  width: 100%;
+  padding: var(--tv-sp-2) var(--tv-sp-3);
+  background: var(--tv-surface);
+  border: 1px solid var(--tv-border-strong);
+  border-radius: var(--tv-radius-sm);
+  font-size: var(--tv-fs-small);
+  color: var(--tv-text);
+}
+.versions-popover__input::placeholder { color: var(--tv-text-faint); }
+.versions-popover__input:focus {
+  outline: none;
+  border-color: var(--tv-brand);
+  box-shadow: var(--tv-ring-focus);
+}
+.versions-popover__save {
+  appearance: none;
+  background: var(--tv-brand);
+  color: #fff;
+  border: 1px solid var(--tv-brand-strong);
+  border-radius: var(--tv-radius-sm);
+  padding: 0 var(--tv-sp-3);
+  font-size: var(--tv-fs-small);
+  font-weight: var(--tv-fw-semi);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.versions-popover__save:hover { background: var(--tv-brand-strong); }
+.versions-popover__save:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+.versions-popover__save:disabled {
+  background: var(--tv-text-faint);
+  border-color: var(--tv-text-faint);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.versions-popover__divider {
+  height: 1px;
+  background: var(--tv-border);
+  margin: var(--tv-sp-3) calc(-1 * var(--tv-sp-3));
+}
+
+.versions-popover__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.versions-popover__item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--tv-sp-2);
+  align-items: center;
+  padding: var(--tv-sp-2) var(--tv-sp-2);
+  border-radius: var(--tv-radius-sm);
+}
+.versions-popover__item:hover { background: var(--tv-surface-alt); }
+.versions-popover__meta {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.versions-popover__label {
+  font-weight: var(--tv-fw-semi);
+  color: var(--tv-text);
+  font-size: var(--tv-fs-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.versions-popover__time {
+  font-size: var(--tv-fs-micro);
+  color: var(--tv-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.versions-popover__action {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--tv-border);
+  color: var(--tv-text-muted);
+  padding: 0.18em 0.55em;
+  font-size: var(--tv-fs-micro);
+  font-weight: var(--tv-fw-semi);
+  border-radius: var(--tv-radius-sm);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.versions-popover__action:hover {
+  background: var(--tv-brand-soft);
+  border-color: var(--tv-brand);
+  color: var(--tv-brand-strong);
+}
+.versions-popover__action--danger:hover {
+  background: var(--tv-status-locked-bg);
+  border-color: var(--tv-status-locked-fg);
+  color: var(--tv-status-locked-fg);
+}
+.versions-popover__action:focus-visible {
+  outline: none;
+  box-shadow: var(--tv-ring-focus);
+}
+
+.versions-popover__empty {
+  margin: var(--tv-sp-3) 0 0;
+  padding: var(--tv-sp-3);
+  background: var(--tv-surface-alt);
+  border-radius: var(--tv-radius-sm);
+  font-size: var(--tv-fs-small);
+  color: var(--tv-text-muted);
+  line-height: var(--tv-lh-snug);
+}
+.versions-popover__footnote {
+  margin: var(--tv-sp-3) 0 0;
+  padding-top: var(--tv-sp-2);
+  border-top: 1px dashed var(--tv-border);
+  font-size: var(--tv-fs-micro);
+  color: var(--tv-text-faint);
+  font-style: italic;
+}
+
+@media (max-width: 520px) {
+  .versions-popover { right: -8px; width: 320px; }
+}
+
+@media print {
+  [data-versions-menu], .versions-popover { display: none !important; }
+}
+
 /* ---------- Selection mini-toolbar (Part 7.3) ----------------------------- */
 .selection-toolbar {
   position: fixed;

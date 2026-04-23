@@ -83,6 +83,43 @@
         Edit mode
       </span>
 
+      <div class="toolbar__menu" data-versions-menu hidden>
+        <button
+          type="button"
+          class="toolbar__btn"
+          data-versions-trigger
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          title="Save and restore version snapshots"
+        >
+          <span class="toolbar__btn-icon" aria-hidden="true">⊕</span>
+          <span class="toolbar__btn-label">Versions</span>
+          <span class="toolbar__btn-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="versions-popover" data-versions-popover hidden role="dialog" aria-label="Saved versions">
+          <form class="versions-popover__form" data-versions-form>
+            <input
+              type="text"
+              class="versions-popover__input"
+              data-versions-label-input
+              placeholder="Label (e.g. 'Before legal review')"
+              maxlength="80"
+              autocomplete="off"
+            />
+            <button type="submit" class="versions-popover__save">Save version</button>
+          </form>
+          <div class="versions-popover__divider" aria-hidden="true"></div>
+          <ul class="versions-popover__list" data-versions-list></ul>
+          <p class="versions-popover__empty" data-versions-empty hidden>
+            No saved versions yet. Type a label above and click <strong>Save version</strong>
+            to capture the current state.
+          </p>
+          <p class="versions-popover__footnote">
+            Versions store text edits only. Added rows / sections aren't included.
+          </p>
+        </div>
+      </div>
+
       <button
         type="button"
         class="toolbar__btn toolbar__btn--danger"
